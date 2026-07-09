@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="theme-color" content="#1a5c44"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="RFO"/>
+<title>RFO — Registro Fotográfico de Obra</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --g:#1a5c44;--g2:#22744f;--gl:#e8f5ef;--gm:#c8e6d8;
+  --gold:#b8a06a;--tx:#1a2e25;--gray:#e0e0e0;
+  --fxs:clamp(9px,1.8vw,11px); --fsm:clamp(11px,2.2vw,13px);
+  --fmd:clamp(13px,2.6vw,15px); --flg:clamp(15px,3vw,17px);
+  --fxl:clamp(17px,3.5vw,21px);
+}
+html,body{min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(160deg,#0d3324 0%,#1a5c44 50%,#0d3324 100%);min-height:100vh;padding-bottom:clamp(32px,6vw,60px);color:var(--tx);line-height:1.5;}
+input,select,textarea,button,label{font-family:inherit;}
+.page{width:100%;max-width:760px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(10px,3vw,20px);}
+.header{text-align:center;margin-bottom:clamp(14px,3vw,24px);position:relative;}
+.logo-wrap{background:#fff;border-radius:12px;padding:clamp(8px,2vw,14px) clamp(16px,4vw,30px);display:inline-flex;align-items:center;justify-content:center;margin-bottom:clamp(8px,2vw,14px);box-shadow:0 4px 20px rgba(0,0,0,.25);max-width:clamp(200px,60vw,300px);width:100%;}
+.logo-wrap img{height:clamp(34px,6vw,52px);width:100%;object-fit:contain;object-position:center;display:block;}
+.header h1{color:#fff;font-size:var(--fxl);font-weight:700;margin-bottom:4px;text-shadow:0 1px 4px rgba(0,0,0,.3);}
+.header p{color:#a8d4be;font-size:var(--fxs);font-family:monospace;}
+.version-badge{position:absolute;top:6px;right:4px;font-size:clamp(8px,1.5vw,10px);color:rgba(255,255,255,.45);font-family:monospace;cursor:pointer;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.18);text-decoration:none;transition:all .2s;user-select:none;}
+.version-badge:hover{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.1);}
+.lock-badge{position:absolute;top:6px;left:4px;font-size:clamp(8px,1.5vw,10px);color:rgba(255,255,255,.35);font-family:monospace;cursor:pointer;padding:3px 9px;border-radius:5px;border:1px solid rgba(255,255,255,.14);text-decoration:none;transition:all .2s;font-weight:700;user-select:none;}
+.lock-badge:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);}
+.card{background:#fff;border-radius:clamp(10px,2vw,18px);overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.35);margin-bottom:clamp(14px,3vw,20px);}
+.sh{background:var(--g);padding:clamp(9px,2vw,13px) clamp(14px,3vw,20px);font-size:var(--fxs);font-weight:800;color:#fff;letter-spacing:.12em;text-transform:uppercase;font-family:monospace;border-left:4px solid var(--gold);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.sh-btn{background:rgba(255,255,255,.18);border:none;border-radius:6px;color:#fff;font-size:var(--fxs);font-weight:700;padding:5px 11px;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0;transition:background .15s;min-height:28px;}
+.sh-btn:hover{background:rgba(255,255,255,.32);}
+.sh-btn:disabled{opacity:.5;cursor:not-allowed;}
+.sb{padding:clamp(12px,2.5vw,18px) clamp(14px,3vw,20px);}
+.desc{font-size:var(--fsm);color:#64748b;margin-bottom:12px;line-height:1.6;}
+.abtn{width:clamp(36px,7vw,42px);height:clamp(36px,7vw,42px);border-radius:8px;border:none;font-size:clamp(16px,3vw,20px);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .1s;min-width:36px;}
+.abtn:active{transform:scale(.9);}
+.abtn.plus{background:var(--g);color:#fff;}
+.abtn.minus{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;}
+/* BOTAO PRINCIPAL ESTILO GERAR */
+.gbtn{padding:clamp(13px,2.5vw,17px) 0;border-radius:11px;border:none;background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;font-size:var(--flg);font-weight:700;cursor:pointer;width:100%;box-shadow:0 4px 20px rgba(26,92,68,.4);transition:all .2s;min-height:52px;letter-spacing:.02em;}
+.gbtn.ok{background:linear-gradient(135deg,#16a34a,#22c55e);}
+.gbtn.wait{background:#94a3b8;cursor:not-allowed;}
+.gbtn:disabled{background:#94a3b8;cursor:not-allowed;box-shadow:none;}
+.gbtn:active:not(:disabled){transform:scale(.98);}
+.btn-outline{width:100%;background:#fff;border:1.5px solid var(--gm);border-radius:10px;padding:11px 16px;font-size:var(--fsm);font-weight:700;color:var(--g);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;}
+.btn-outline:active{transform:scale(.98);}
+input[type=file]{display:none;}
+/* THUMBS */
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
+.thumb{position:relative;aspect-ratio:1/1;border-radius:9px;overflow:hidden;border:1.5px solid var(--gm);background:#000;}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.thumb .rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.count-pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;margin-left:6px;font-family:monospace;font-weight:700;}
+/* LISTA DE ARQUIVOS */
+.filelist{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
+.filerow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--gl);border:1.5px solid var(--gm);border-radius:9px;padding:9px 12px;font-size:var(--fsm);}
+.filerow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.filerow .ef-rm{padding:4px 9px;border-radius:6px;background:rgba(220,38,38,.1);border:none;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;min-height:30px;}
+/* STATUS */
+.status{font-size:var(--fsm);color:#64748b;margin-top:9px;line-height:1.5;}
+.status.ok{color:#16a34a;font-weight:600;}
+.status.err{color:#dc2626;font-weight:600;}
+.progress-wrap{background:var(--gm);border-radius:8px;height:8px;overflow:hidden;margin-top:10px;display:none;}
+.progress-bar{height:100%;background:var(--g);width:0%;transition:width .2s;}
+.admin-tag{display:inline-flex;align-items:center;gap:6px;background:#e8f5ef;color:var(--g);border:1px solid var(--gm);font-size:var(--fxs);padding:5px 11px;border-radius:20px;margin-bottom:14px;font-family:monospace;font-weight:700;}
+.step-lbl{font-size:var(--fxs);font-weight:800;color:var(--g);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;font-family:monospace;}
+.step-lbl:first-child{margin-top:0;}
+hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
+/* MODAIS SISTEMA (senha / changelog) */
+.sys-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9997;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);overflow-y:auto;}
+.sys-bg.open{display:flex;}
+.cl-bg{z-index:9998;align-items:flex-start;}
+.pwd-box{background:#fff;border-radius:clamp(10px,2vw,16px);padding:clamp(18px,4vw,28px);width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.5);margin:auto;}
+.pwd-ttl{color:var(--g);font-size:var(--flg);font-weight:800;margin-bottom:14px;}
+.pwd-inp{width:100%;padding:clamp(10px,2vw,13px);border-radius:9px;border:1.5px solid var(--gm);background:var(--gl);font-size:var(--fmd);outline:none;margin-bottom:12px;letter-spacing:3px;min-height:44px;-webkit-appearance:none;appearance:none;}
+.pwd-btns{display:flex;gap:8px;}
+.pwd-ok,.pwd-cc{flex:1;padding:clamp(10px,2vw,13px);border-radius:9px;font-weight:700;font-size:var(--fmd);cursor:pointer;min-height:44px;}
+.pwd-ok{border:none;background:var(--g);color:#fff;}
+.pwd-cc{border:1.5px solid var(--gm);background:var(--gl);color:var(--g);}
+.pwd-err{font-size:var(--fxs);color:#dc2626;margin-top:8px;font-family:monospace;display:none;}
+.cl-box{background:#fff;border-radius:clamp(10px,2vw,18px);padding:clamp(16px,4vw,26px);width:100%;max-width:460px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.cl-ttl{color:var(--g);font-size:var(--flg);font-weight:800;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.cl-close{background:var(--gl);border:none;border-radius:8px;padding:6px 13px;cursor:pointer;font-weight:700;color:var(--g);font-size:var(--fsm);white-space:nowrap;min-height:36px;}
+.cl-ver{margin-bottom:14px;}
+.cl-vttl{font-size:var(--fxs);font-weight:800;color:var(--g);font-family:monospace;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--gm);}
+.cl-ver ul{padding-left:16px;}
+.cl-ver li{font-size:var(--fxs);color:#374151;line-height:1.75;}
+.pf{text-align:center;color:#a8d4be;font-size:var(--fxs);margin-top:clamp(10px,2vw,16px);font-family:monospace;}
+@media(min-width:760px){ .sh{padding:13px 22px;} .sb{padding:18px 22px;} }
+@media(hover:hover) and (pointer:fine){
+  .abtn.plus:hover{background:var(--g2);} .abtn.minus:hover{background:#fecaca;}
+  .gbtn:hover:not(:disabled){box-shadow:0 6px 28px rgba(26,92,68,.55);transform:translateY(-1px);}
+  .btn-outline:hover{background:var(--gl);}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(26,92,68,.28);border-radius:3px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Senha do Painel do Responsável -->
+<div class="sys-bg" id="pwd-bg">
+  <div class="pwd-box">
+    <div class="pwd-ttl">🔒 Painel do Responsável</div>
+    <input class="pwd-inp" type="password" id="pwd-inp" placeholder="Senha" onkeydown="if(event.key==='Enter')confirmarSenha()"/>
+    <div class="pwd-btns">
+      <button class="pwd-ok" onclick="confirmarSenha()">Desbloquear</button>
+      <button class="pwd-cc" onclick="document.getElementById('pwd-bg').className='sys-bg'">Cancelar</button>
+    </div>
+    <div class="pwd-err" id="pwd-err">Senha incorreta.</div>
+  </div>
+</div>
+
+<!-- Changelog -->
+<div class="sys-bg cl-bg" id="cl-bg">
+  <div class="cl-box">
+    <div class="cl-ttl">
+      📋 Histórico de Versões
+      <button class="cl-close" onclick="document.getElementById('cl-bg').className='sys-bg cl-bg'">✕ Fechar</button>
+    </div>
+    <div style="font-size:10px;color:#64748b;font-family:monospace;text-align:center;padding:6px 0 10px;border-bottom:1px solid var(--gm);margin-bottom:12px;">
+      © Copyright — Desenvolvido por:<br><strong style="color:var(--g);">Rafael Cavalcanti Moreira</strong> — <span id="cl-mes-ano"></span>
+    </div>
+    <div id="cl-content"></div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="header">
+    <a class="lock-badge" href="javascript:void(0)" onclick="abrirPwd()">🔒</a>
+    <a class="version-badge" href="javascript:void(0)" onclick="abrirChangelog()">v0.4</a>
+    <div class="logo-wrap"><img id="logo-img" alt="Timenow"/></div>
+    <h1>Registro Fotográfico de Obra</h1>
+    <p>Despoeiramento do Topo — Arcelor Mittal Tubarão</p>
+  </div>
+
+  <!-- 01 / FOTOS DO DIA -->
+  <div class="card">
+    <div class="sh"><span>01 / Fotos do Dia</span><span class="count-pill" id="countFotos">0</span></div>
+    <div class="sb">
+      <div class="desc">Selecione fotos da galeria ou tire na hora. Depois gere o ZIP e compartilhe direto pelo WhatsApp, escolhendo o destinatário.</div>
+      <input type="file" id="inputFotos" accept="image/*" multiple>
+      <button class="btn-outline" onclick="document.getElementById('inputFotos').click()">➕ Adicionar Fotos</button>
+      <div class="thumbs" id="thumbsFotos"></div>
+    </div>
+    <div style="padding:0 clamp(14px,3vw,20px) clamp(14px,3vw,20px);">
+      <button class="gbtn" id="btnCompartilhar" onclick="prepararZip()" disabled>📤 Gerar ZIP e Compartilhar no WhatsApp</button>
+      <button class="gbtn" id="btnCompartilharAgora" onclick="compartilharZipAgora()" style="display:none;margin-top:10px;background:linear-gradient(135deg,#16a34a,#22c55e);">📲 Toque para Compartilhar no WhatsApp</button>
+      <div class="progress-wrap" id="progWrapZip"><div class="progress-bar" id="progBarZip"></div></div>
+      <div class="status" id="statusZip"></div>
+    </div>
+  </div>
+
+  <!-- 02 / PAINEL DO RESPONSAVEL -->
+  <div class="card">
+    <div class="sh"><span>02 / Painel do Responsável</span><button class="sh-btn" id="btnBloqueado" onclick="abrirPwd()">🔒 Bloqueado</button></div>
+    <div class="sb">
+      <div class="desc">Junte os ZIPs recebidos dos colegas em uma apresentação PowerPoint (fade automático, 5s por foto), ou alimente um PowerPoint já exportado com novas fotos.</div>
+      <div id="adminLockedMsg" style="text-align:center;color:#94a3b8;font-size:var(--fsm);font-family:monospace;padding:10px 0;">🔒 Toque em "Bloqueado" acima e informe a senha para liberar esta área.</div>
+
+      <div id="adminPanel" style="display:none;">
+        <div class="admin-tag">🔓 Painel desbloqueado</div>
+
+        <div class="step-lbl">1️⃣ PowerPoint existente (opcional — alimentador)</div>
+        <input type="file" id="inputPptxCarregar" accept=".pptx">
+        <button class="btn-outline" onclick="document.getElementById('inputPptxCarregar').click()">📥 Carregar PowerPoint Existente</button>
+        <div class="status" id="statusPptxCarregado"></div>
+        <hr class="sep">
+
+        <div class="step-lbl">2️⃣ ZIPs de fotos recebidos <span class="count-pill" style="background:var(--gl);color:var(--g);" id="countZips">0</span></div>
+        <input type="file" id="inputZips" accept=".zip" multiple>
+        <button class="btn-outline" onclick="document.getElementById('inputZips').click()">📦 Selecionar ZIPs</button>
+        <div class="filelist" id="listaZips"></div>
+        <hr class="sep">
+
+        <div class="step-lbl">3️⃣ Gerar apresentação</div>
+        <button class="gbtn" id="btnGerarPptx" onclick="gerarApresentacao()" disabled>🎬 Gerar PowerPoint</button>
+        <div class="progress-wrap" id="progWrapPptx"><div class="progress-bar" id="progBarPptx"></div></div>
+        <div class="status" id="statusPptx"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="pf" id="rodape">TimeNow Engenharia</p>
+</div>
+
+<script>
+/* ── LOGO (base64 inline, reaproveitado do RAE/RIA) ─────────────────────── */
+document.getElementById('logo-img').src='data:image/png;base64,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';
+
+/* ── RODAPÉ DINÂMICO ──────────────────────────────────────────────────────*/
+var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+function getRodape(){ var d=new Date(); return 'TimeNow Engenharia \u2014 '+MESES[d.getMonth()]+' '+d.getFullYear(); }
+document.getElementById('rodape').textContent = getRodape();
+document.getElementById('cl-mes-ano').textContent = (function(){var d=new Date();return MESES[d.getMonth()]+' '+d.getFullYear();})();
+
+/* ── CHANGELOG ────────────────────────────────────────────────────────────*/
+var CL = {
+  "v0.4": [
+    "Mensagem de erro do compartilhamento agora mostra o detalhe técnico (nome/mensagem do navegador), facilitando diagnóstico.",
+    "Importante: o compartilhamento nativo de arquivo (WhatsApp) só funciona quando o app está publicado e acessado por HTTPS (ex: GitHub Pages) — não funciona ao abrir o HTML como arquivo local/baixado."
+  ],
+  "v0.3": [
+    "Correção crítica: compartilhamento no WhatsApp separado em duas etapas — gerar o ZIP e depois um toque extra para compartilhar — corrige o erro \"Must be handling a user gesture\" que alguns navegadores/Android disparavam quando o compartilhamento demorava a iniciar."
+  ],
+  "v0.2": [
+    "Correção crítica Android: fotos e ZIPs agora são lidos em memória no momento da seleção — evita erro de permissão do seletor de fotos do sistema ao gerar o ZIP.",
+    "Fotos e imagens repetidas (mesmo conteúdo) são detectadas automaticamente e ignoradas, tanto na seleção de fotos quanto ao consolidar os ZIPs recebidos no PowerPoint.",
+    "Compatibilidade confirmada: Android, iOS e Windows — com fallback automático de download quando o compartilhamento direto de arquivo não é suportado pelo navegador."
+  ],
+  "v0.1": [
+    "Lançamento inicial do app RFO — Registro Fotográfico de Obra.",
+    "Seleção de fotos da galeria ou captura direta pela câmera.",
+    "Geração de ZIP das fotos e compartilhamento direto para o WhatsApp (destinatário escolhido no próprio WhatsApp).",
+    "Painel do responsável protegido por senha para consolidar os ZIPs recebidos em uma apresentação PowerPoint, com transição fade e 5 segundos por slide.",
+    "Função de carregar um PowerPoint já exportado e alimentá-lo com novas fotos, mantendo o mesmo arquivo (numeração de slides continuada)."
+  ]
+};
+function abrirChangelog(){
+  var c = document.getElementById('cl-content'); c.innerHTML='';
+  var keys = Object.keys(CL);
+  for(var i=0;i<keys.length;i++){
+    var v = keys[i];
+    var d = document.createElement('div'); d.className='cl-ver';
+    var badge = i===0 ? ' <span style="color:var(--gold);font-size:10px">\u25CF atual</span>' : '';
+    d.innerHTML = '<div class="cl-vttl">'+v+badge+'</div><ul>'+CL[v].map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>';
+    c.appendChild(d);
+  }
+  document.getElementById('cl-bg').className='sys-bg cl-bg open';
+}
+
+/* ── SENHA / PAINEL DO RESPONSÁVEL ───────────────────────────────────────*/
+var ADMIN_PASS = "TimeNow001*";
+var adminUnlocked = false;
+function abrirPwd(){
+  if(adminUnlocked) return;
+  document.getElementById('pwd-inp').value='';
+  document.getElementById('pwd-err').style.display='none';
+  document.getElementById('pwd-bg').className='sys-bg open';
+  setTimeout(function(){ document.getElementById('pwd-inp').focus(); }, 100);
+}
+function confirmarSenha(){
+  var pwd = document.getElementById('pwd-inp').value;
+  if(pwd !== ADMIN_PASS){
+    document.getElementById('pwd-err').style.display='block';
+    document.getElementById('pwd-inp').value='';
+    return;
+  }
+  document.getElementById('pwd-bg').className='sys-bg';
+  adminUnlocked = true;
+  document.getElementById('adminLockedMsg').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  var btnB = document.getElementById('btnBloqueado');
+  btnB.textContent = '🔓 Desbloqueado';
+  btnB.disabled = true;
+}
+
+/* ── HASH (detecta fotos/imagens repetidas pelo conteúdo, não só pelo nome) ─*/
+async function hashBuffer(buffer){
+  try{
+    if(window.crypto && crypto.subtle && crypto.subtle.digest){
+      var hashBuf = await crypto.subtle.digest('SHA-256', buffer);
+      return Array.from(new Uint8Array(hashBuf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+    }
+  }catch(e){ /* segue para o fallback abaixo */ }
+  // Fallback (navegador sem Web Crypto, ex: contexto não-seguro): tamanho + amostra de bytes
+  var arr = new Uint8Array(buffer);
+  var soma = 0;
+  var passo = Math.max(1, Math.floor(arr.length/2000));
+  for(var i=0;i<arr.length;i+=passo) soma = (soma*31 + arr[i]) >>> 0;
+  return arr.length+'_'+soma;
+}
+
+/* ── ESTADO ───────────────────────────────────────────────────────────────*/
+var fotos = [];   // {file, url}
+var zips = [];    // File[]
+var pptxCarregado = null; // {name, buffer}
+
+/* ── BLOCO 01: FOTOS / ZIP / WHATSAPP ────────────────────────────────────*/
+document.getElementById('inputFotos').addEventListener('change', async function(e){
+  var arquivos = Array.from(e.target.files);
+  e.target.value='';
+  var duplicadas = 0;
+  for(var i=0;i<arquivos.length;i++){
+    var f = arquivos[i];
+    try{
+      // Lê os bytes AGORA (na seleção) — em Android o seletor de fotos do sistema
+      // pode revogar o acesso ao arquivo original depois de um tempo, então não
+      // podemos confiar em ler o File/Blob mais tarde (ex: só na hora de zipar).
+      var buffer = await f.arrayBuffer();
+      var hash = await hashBuffer(buffer);
+      if(fotos.some(function(ft){ return ft.hash === hash; })){
+        duplicadas++;
+        continue; // foto repetida (mesmo conteúdo já selecionado) — ignorada
+      }
+      var blobEstavel = new Blob([buffer], {type: f.type || 'image/jpeg'});
+      fotos.push({ name: f.name, type: f.type, buffer: buffer, hash: hash, url: URL.createObjectURL(blobEstavel) });
+      renderFotos();
+    }catch(err){
+      alert('Não foi possível ler a foto "'+f.name+'": '+(err.message||err));
+    }
+  }
+  if(duplicadas>0){
+    var st = document.getElementById('statusZip');
+    st.className='status';
+    st.textContent = duplicadas+(duplicadas>1?' fotos repetidas ignoradas':' foto repetida ignorada')+' (já estava'+(duplicadas>1?'m':'')+' na lista).';
+  }
+});
+function renderFotos(){
+  var wrap = document.getElementById('thumbsFotos');
+  wrap.innerHTML = fotos.map(function(f,i){
+    return '<div class="thumb"><img src="'+f.url+'"><button class="rm" onclick="removerFoto('+i+')">\u2715</button></div>';
+  }).join('');
+  document.getElementById('countFotos').textContent = fotos.length;
+  document.getElementById('btnCompartilhar').disabled = fotos.length===0;
+  // Se a lista de fotos mudou, o ZIP já gerado (se houver) fica desatualizado.
+  zipPronto = null;
+  document.getElementById('btnCompartilharAgora').style.display = 'none';
+}
+function removerFoto(i){ fotos.splice(i,1); renderFotos(); }
+
+function nomeSeguro(nome, i){
+  var ext = (nome.split('.').pop()||'jpg').toLowerCase();
+  return 'foto_'+String(i+1).padStart(3,'0')+'.'+ext;
+}
+function carimboData(){
+  var d = new Date();
+  function p(n){ return String(n).padStart(2,'0'); }
+  return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
+}
+function baixarBlob(blob, nome){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+
+var zipPronto = null; // { blob, file, nome }
+
+async function prepararZip(){
+  var statusEl = document.getElementById('statusZip');
+  var progWrap = document.getElementById('progWrapZip');
+  var progBar = document.getElementById('progBarZip');
+  var btnGerar = document.getElementById('btnCompartilhar');
+  var btnAgora = document.getElementById('btnCompartilharAgora');
+
+  btnAgora.style.display = 'none';
+  zipPronto = null;
+  statusEl.className='status'; statusEl.textContent='Compactando fotos...';
+  progWrap.style.display='block'; progBar.style.width='0%';
+  btnGerar.disabled = true;
+
+  try{
+    var zip = new JSZip();
+    fotos.forEach(function(f,i){ zip.file(nomeSeguro(f.name,i), f.buffer); });
+    var blob = await zip.generateAsync({type:'blob'}, function(meta){ progBar.style.width = meta.percent.toFixed(0)+'%'; });
+    var nomeZip = 'obra_fotos_'+carimboData()+'.zip';
+    var zipFile = new File([blob], nomeZip, {type:'application/zip'});
+    zipPronto = { blob: blob, file: zipFile, nome: nomeZip };
+
+    if(navigator.canShare && navigator.canShare({files:[zipFile]})){
+      // Não chamamos navigator.share aqui: o navegador exige que o compartilhamento
+      // seja disparado direto por um clique do usuário, sem espera assíncrona antes.
+      // Por isso liberamos um segundo botão — o toque nele é o gesto válido.
+      statusEl.className='status ok';
+      statusEl.textContent = 'ZIP pronto! Toque no botão verde abaixo para compartilhar no WhatsApp.';
+      btnAgora.style.display='block';
+    } else {
+      baixarBlob(blob, nomeZip);
+      statusEl.className='status';
+      statusEl.textContent = 'Este navegador não permite compartilhar arquivos direto. O ZIP foi baixado \u2014 anexe-o manualmente no WhatsApp.';
+    }
+  }catch(err){
+    statusEl.className='status err';
+    statusEl.textContent = 'Erro ao gerar o ZIP: '+(err.message||err);
+  } finally {
+    progWrap.style.display='none';
+    btnGerar.disabled = fotos.length===0;
+  }
+}
+
+function compartilharZipAgora(){
+  if(!zipPronto) return;
+  var statusEl = document.getElementById('statusZip');
+  // Chamado diretamente pelo clique — precisa ser síncrono até aqui para o
+  // navegador aceitar o compartilhamento.
+  navigator.share({
+    files:[zipPronto.file],
+    title:'Fotos da obra',
+    text:'Fotos da obra \u2014 '+getRodape()
+  }).then(function(){
+    statusEl.className='status ok';
+    statusEl.textContent = 'Compartilhado! Escolha o WhatsApp e o destinatário na tela de compartilhamento.';
+  }).catch(function(err){
+    if(err && err.name==='AbortError'){
+      statusEl.className='status';
+      statusEl.textContent = 'Compartilhamento cancelado.';
+    } else {
+      baixarBlob(zipPronto.blob, zipPronto.nome);
+      statusEl.className='status';
+      statusEl.textContent = 'Não foi possível abrir o compartilhamento direto (' + (err && err.name || 'erro') + ': ' + (err && err.message || err) + '). O ZIP foi baixado \u2014 anexe-o manualmente no WhatsApp.';
+    }
+  });
+}
+
+/* ── BLOCO 02: CARREGAR PPTX / ZIPS ──────────────────────────────────────*/
+document.getElementById('inputPptxCarregar').addEventListener('change', async function(e){
+  var f = e.target.files[0]; e.target.value='';
+  if(!f) return;
+  var statusEl = document.getElementById('statusPptxCarregado');
+  try{
+    // Lê os bytes agora — não guarda referência ao File original (evita erro de
+    // permissão do Android quando o PowerPoint só é usado minutos depois).
+    var buffer = await f.arrayBuffer();
+    var zip = await JSZip.loadAsync(buffer);
+    var n = Object.keys(zip.files).filter(function(nm){return /^ppt\/slides\/slide\d+\.xml$/.test(nm);}).length;
+    pptxCarregado = { name: f.name, buffer: buffer };
+    statusEl.className='status ok';
+    statusEl.textContent = 'Carregado: '+f.name+' ('+n+' slide'+(n===1?'':'s')+' já existentes).';
+  }catch(err){
+    pptxCarregado = null;
+    statusEl.className='status err';
+    statusEl.textContent = 'Não foi possível ler este arquivo como PowerPoint válido: '+(err.message||err);
+  }
+  atualizarBotaoGerar();
+});
+document.getElementById('inputZips').addEventListener('change', async function(e){
+  var arquivos = Array.from(e.target.files);
+  e.target.value='';
+  for(var i=0;i<arquivos.length;i++){
+    var f = arquivos[i];
+    try{
+      var buffer = await f.arrayBuffer();
+      zips.push({ name: f.name, buffer: buffer });
+      renderZips();
+    }catch(err){
+      alert('Não foi possível ler o ZIP "'+f.name+'": '+(err.message||err));
+    }
+  }
+});
+function renderZips(){
+  document.getElementById('countZips').textContent = zips.length;
+  document.getElementById('listaZips').innerHTML = zips.map(function(z,i){
+    return '<div class="filerow"><span>\ud83d\udce6 '+z.name+'</span><button class="ef-rm" onclick="removerZip('+i+')">Remover</button></div>';
+  }).join('');
+  atualizarBotaoGerar();
+}
+function removerZip(i){ zips.splice(i,1); renderZips(); }
+function atualizarBotaoGerar(){ document.getElementById('btnGerarPptx').disabled = zips.length===0; }
+
+/* ── GERADOR DE PPTX (OOXML manual via JSZip) ────────────────────────────*/
+var EMU_W = 12192000, EMU_H = 6858000;
+
+var THEME_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TimeNow"><a:themeElements><a:clrScheme name="TimeNow"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F1F1F"/></a:dk2><a:lt2><a:srgbClr val="E8E8E8"/></a:lt2><a:accent1><a:srgbClr val="1A5C44"/></a:accent1><a:accent2><a:srgbClr val="22744F"/></a:accent2><a:accent3><a:srgbClr val="B8A06A"/></a:accent3><a:accent4><a:srgbClr val="C62828"/></a:accent4><a:accent5><a:srgbClr val="6A1B9A"/></a:accent5><a:accent6><a:srgbClr val="00838F"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="TimeNow"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TimeNow"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
+
+function xmlContentTypes(slideCount){
+  var ov=''; for(var i=1;i<=slideCount;i++) ov+='<Override PartName="/ppt/slides/slide'+i+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'+ov+'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
+}
+function xmlRootRels(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>';
+}
+function xmlCore(){
+  var now = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Fotos da Obra</dc:title><dc:creator>TimeNow Engenharia</dc:creator><cp:lastModifiedBy>TimeNow Engenharia</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">'+now+'</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">'+now+'</dcterms:modified></cp:coreProperties>';
+}
+function xmlApp(slideCount){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Office PowerPoint</Application><Slides>'+slideCount+'</Slides><PresentationFormat>Widescreen</PresentationFormat><Company>TimeNow Engenharia</Company></Properties>';
+}
+function xmlPresentation(slideIds){
+  var entries = slideIds.map(function(s){return '<p:sldId id="'+s.id+'" r:id="rId'+s.rid+'"/>';}).join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>'+entries+'</p:sldIdLst><p:sldSz cx="'+EMU_W+'" cy="'+EMU_H+'"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>';
+}
+function xmlPresentationRels(slideCount){
+  var r='<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
+  for(var i=1;i<=slideCount;i++) r+='<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+i+'.xml"/>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+r+'</Relationships>';
+}
+function xmlSlideMaster(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>';
+}
+function xmlSlideMasterRels(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>';
+}
+function xmlSlideLayout(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
+}
+function xmlSlideLayoutRels(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
+}
+function fitRect(imgW, imgH){
+  var slideRatio = EMU_W/EMU_H, imgRatio = imgW/imgH, cx, cy;
+  if(imgRatio > slideRatio){ cx = EMU_W; cy = Math.round(EMU_W/imgRatio); }
+  else { cy = EMU_H; cx = Math.round(EMU_H*imgRatio); }
+  return { x: Math.round((EMU_W-cx)/2), y: Math.round((EMU_H-cy)/2), cx: cx, cy: cy };
+}
+function xmlSlide(imgW, imgH){
+  var r = fitRect(imgW, imgH);
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Foto"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+r.x+'" y="'+r.y+'"/><a:ext cx="'+r.cx+'" cy="'+r.cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:transition spd="med" advTm="5000"><p:fade/></p:transition></p:sld>';
+}
+function xmlSlideRels(ext, slideIdx){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image'+slideIdx+'.'+ext+'"/></Relationships>';
+}
+
+function getImageDimensions(buffer){
+  return new Promise(function(resolve){
+    var blob = new Blob([buffer]);
+    if(window.createImageBitmap){
+      createImageBitmap(blob, {imageOrientation:'from-image'}).then(function(bmp){
+        resolve({width:bmp.width, height:bmp.height});
+        if(bmp.close) bmp.close();
+      }).catch(function(){ fallbackDims(blob, resolve); });
+    } else { fallbackDims(blob, resolve); }
+  });
+}
+function fallbackDims(blob, resolve){
+  var url = URL.createObjectURL(blob);
+  var img = new Image();
+  img.onload = function(){ resolve({width:img.naturalWidth, height:img.naturalHeight}); URL.revokeObjectURL(url); };
+  img.onerror = function(){ resolve({width:1600, height:1200}); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+function extFromName(name){
+  return (name||'').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+}
+async function extrairImagensDosZips(arquivosZip, onProgress){
+  var imagens = [];
+  var hashesVistos = {};
+  var duplicadasIgnoradas = 0;
+  for(var z=0; z<arquivosZip.length; z++){
+    var zip = await JSZip.loadAsync(arquivosZip[z].buffer);
+    var entries = Object.values(zip.files).filter(function(e){ return !e.dir && /\.(jpe?g|png)$/i.test(e.name); });
+    for(var i=0;i<entries.length;i++){
+      var entry = entries[i];
+      var buffer = await entry.async('arraybuffer');
+      var hash = await hashBuffer(buffer);
+      if(hashesVistos[hash]){ duplicadasIgnoradas++; continue; } // mesma foto já recebida de outro colega/zip — ignorada
+      hashesVistos[hash] = true;
+      imagens.push({ name: entry.name, buffer: buffer, ext: extFromName(entry.name) });
+      if(onProgress) onProgress(imagens.length);
+    }
+  }
+  return { imagens: imagens, duplicadas: duplicadasIgnoradas };
+}
+async function criarNovaApresentacao(imagens, onProgress){
+  var zip = new JSZip();
+  var n = imagens.length;
+  zip.file('[Content_Types].xml', xmlContentTypes(n));
+  zip.file('_rels/.rels', xmlRootRels());
+  zip.file('docProps/core.xml', xmlCore());
+  zip.file('docProps/app.xml', xmlApp(n));
+  zip.file('ppt/theme/theme1.xml', THEME_XML);
+  zip.file('ppt/slideMasters/slideMaster1.xml', xmlSlideMaster());
+  zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', xmlSlideMasterRels());
+  zip.file('ppt/slideLayouts/slideLayout1.xml', xmlSlideLayout());
+  zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', xmlSlideLayoutRels());
+
+  var slideIds = [];
+  for(var i=1;i<=n;i++){
+    slideIds.push({id:255+i, rid:i+1});
+    var img = imagens[i-1];
+    var dims = await getImageDimensions(img.buffer);
+    zip.file('ppt/slides/slide'+i+'.xml', xmlSlide(dims.width, dims.height));
+    zip.file('ppt/slides/_rels/slide'+i+'.xml.rels', xmlSlideRels(img.ext, i));
+    zip.file('ppt/media/image'+i+'.'+img.ext, img.buffer);
+    if(onProgress) onProgress(i, n);
+  }
+  zip.file('ppt/presentation.xml', xmlPresentation(slideIds));
+  zip.file('ppt/_rels/presentation.xml.rels', xmlPresentationRels(n));
+  return await zip.generateAsync({type:'blob'});
+}
+async function alimentarApresentacaoExistente(pptxBuffer, imagens, onProgress){
+  var zip = await JSZip.loadAsync(pptxBuffer);
+  var slideFiles = Object.keys(zip.files).filter(function(n){ return /^ppt\/slides\/slide\d+\.xml$/.test(n); });
+  var slideNums = slideFiles.map(function(n){ return parseInt(n.match(/slide(\d+)\.xml/)[1]); });
+  var maxSlide = slideNums.length ? Math.max.apply(null, slideNums) : 0;
+
+  var presXml = await zip.file('ppt/presentation.xml').async('string');
+  var presRels = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
+  var ctypes = await zip.file('[Content_Types].xml').async('string');
+
+  var idMatches = Array.from(presXml.matchAll(/<p:sldId id="(\d+)"/g)).map(function(m){return parseInt(m[1]);});
+  var maxId = idMatches.length ? Math.max.apply(null, idMatches) : 255;
+  var ridMatches = Array.from(presRels.matchAll(/Id="rId(\d+)"/g)).map(function(m){return parseInt(m[1]);});
+  var maxRid = ridMatches.length ? Math.max.apply(null, ridMatches) : 1;
+
+  var newSldIds='', newPresRels='', newCtypes='';
+  var n = imagens.length;
+
+  for(var i=0;i<n;i++){
+    var slideIdx = maxSlide+i+1, rid = maxRid+i+1, sldId = maxId+i+1;
+    var img = imagens[i];
+    var dims = await getImageDimensions(img.buffer);
+    zip.file('ppt/slides/slide'+slideIdx+'.xml', xmlSlide(dims.width, dims.height));
+    zip.file('ppt/slides/_rels/slide'+slideIdx+'.xml.rels', xmlSlideRels(img.ext, slideIdx));
+    zip.file('ppt/media/image'+slideIdx+'.'+img.ext, img.buffer);
+    newSldIds += '<p:sldId id="'+sldId+'" r:id="rId'+rid+'"/>';
+    newPresRels += '<Relationship Id="rId'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+slideIdx+'.xml"/>';
+    newCtypes += '<Override PartName="/ppt/slides/slide'+slideIdx+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+    if(onProgress) onProgress(i+1, n);
+  }
+
+  var extsUsadas = Array.from(new Set(imagens.map(function(im){return im.ext;})));
+  extsUsadas.forEach(function(ext){
+    var re = new RegExp('Extension="'+ext+'"');
+    if(!re.test(ctypes)) newCtypes = '<Default Extension="'+ext+'" ContentType="image/'+(ext==='jpeg'?'jpeg':'png')+'"/>' + newCtypes;
+  });
+
+  zip.file('ppt/presentation.xml', presXml.replace('</p:sldIdLst>', newSldIds+'</p:sldIdLst>'));
+  zip.file('ppt/_rels/presentation.xml.rels', presRels.replace('</Relationships>', newPresRels+'</Relationships>'));
+  zip.file('[Content_Types].xml', ctypes.replace('</Types>', newCtypes+'</Types>'));
+
+  var appFileEntry = zip.file('docProps/app.xml');
+  if(appFileEntry){
+    var appStr = await appFileEntry.async('string');
+    appStr = appStr.replace(/<Slides>\d+<\/Slides>/, '<Slides>'+(maxSlide+n)+'</Slides>');
+    zip.file('docProps/app.xml', appStr);
+  }
+  return await zip.generateAsync({type:'blob'});
+}
+
+async function gerarApresentacao(){
+  var statusEl = document.getElementById('statusPptx');
+  var progWrap = document.getElementById('progWrapPptx');
+  var progBar = document.getElementById('progBarPptx');
+  var btn = document.getElementById('btnGerarPptx');
+
+  btn.disabled = true;
+  progWrap.style.display='block'; progBar.style.width='2%';
+  statusEl.className='status'; statusEl.textContent='Descompactando ZIPs recebidos...';
+
+  try{
+    var resultado = await extrairImagensDosZips(zips, function(count){
+      statusEl.textContent = 'Extraindo fotos... ('+count+' encontradas)';
+    });
+    var imagens = resultado.imagens;
+    var duplicadas = resultado.duplicadas;
+
+    if(imagens.length===0){
+      statusEl.className='status err';
+      statusEl.textContent = 'Nenhuma imagem (.jpg/.png) encontrada dentro dos ZIPs selecionados.';
+      btn.disabled = false; progWrap.style.display='none';
+      return;
+    }
+
+    var blob;
+    if(pptxCarregado){
+      statusEl.textContent = 'Alimentando PowerPoint carregado com '+imagens.length+' foto(s)...';
+      blob = await alimentarApresentacaoExistente(pptxCarregado.buffer, imagens, function(i,n){
+        progBar.style.width = Math.round((i/n)*100)+'%';
+        statusEl.textContent = 'Adicionando foto '+i+' de '+n+'...';
+      });
+    } else {
+      statusEl.textContent = 'Gerando novo PowerPoint com '+imagens.length+' foto(s)...';
+      blob = await criarNovaApresentacao(imagens, function(i,n){
+        progBar.style.width = Math.round((i/n)*100)+'%';
+        statusEl.textContent = 'Montando slide '+i+' de '+n+'...';
+      });
+    }
+
+    var nomeArquivo = pptxCarregado
+      ? pptxCarregado.name.replace(/\.pptx$/i,'') + '_atualizado.pptx'
+      : 'apresentacao_obra_'+carimboData()+'.pptx';
+
+    baixarBlob(blob, nomeArquivo);
+    progBar.style.width='100%';
+    statusEl.className='status ok';
+    statusEl.textContent = 'Pronto! "'+nomeArquivo+'" gerado e baixado com '+imagens.length+' foto(s), transição fade e 5s por slide.'
+      + (duplicadas>0 ? ' ('+duplicadas+' foto'+(duplicadas>1?'s':'')+' repetida'+(duplicadas>1?'s':'')+' ignorada'+(duplicadas>1?'s':'')+'.)' : '');
+  }catch(err){
+    statusEl.className='status err';
+    statusEl.textContent = 'Erro ao gerar o PowerPoint: '+(err.message||err);
+  }finally{
+    btn.disabled = zips.length===0;
+    setTimeout(function(){ progWrap.style.display='none'; }, 1500);
+  }
+}
+</script>
+</body>
+</html>
