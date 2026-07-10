@@ -33,6 +33,10 @@ input,select,textarea,button,label{font-family:inherit;}
 .lock-badge:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);}
 .card{background:#fff;border-radius:clamp(10px,2vw,18px);overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.35);margin-bottom:clamp(14px,3vw,20px);}
 .sh{background:var(--g);padding:clamp(9px,2vw,13px) clamp(14px,3vw,20px);font-size:var(--fxs);font-weight:800;color:#fff;letter-spacing:.12em;text-transform:uppercase;font-family:monospace;border-left:4px solid var(--gold);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.sh-3col{display:grid;grid-template-columns:1fr auto 1fr;}
+.sh-3col > *:first-child{justify-self:start;}
+.sh-3col > *:nth-child(2){justify-self:center;}
+.sh-3col > *:last-child{justify-self:end;}
 .sh-btn{background:rgba(255,255,255,.18);border:none;border-radius:6px;color:#fff;font-size:var(--fxs);font-weight:700;padding:5px 11px;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0;transition:background .15s;min-height:28px;}
 .sh-btn:hover{background:rgba(255,255,255,.32);}
 .sh-btn:disabled{opacity:.5;cursor:not-allowed;}
@@ -55,8 +59,10 @@ input[type=file]{display:none;}
 .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
 .thumb{position:relative;aspect-ratio:1/1;border-radius:9px;overflow:hidden;border:1.5px solid var(--gm);background:#000;}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.thumb .rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.count-pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;margin-left:6px;font-family:monospace;font-weight:700;}
+.thumb .rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+.thumb-usada{position:absolute;inset:0;background:rgba(220,38,38,.6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:900;line-height:1;z-index:1;text-shadow:0 1px 4px rgba(0,0,0,.4);}
+.count-pill{display:inline-block;background:rgba(255,255,255,.18);color:#fff;font-size:12px;padding:4px 12px;border-radius:20px;margin-left:6px;font-family:monospace;font-weight:700;}
+.gera-badge{display:inline-block;background:rgba(0,0,0,.2);color:#ffe9b8;font-size:11px;padding:3px 11px;border-radius:20px;font-family:monospace;font-weight:700;border:1px solid rgba(255,255,255,.2);}
 /* LISTA DE ARQUIVOS */
 .filelist{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
 .filerow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--gl);border:1.5px solid var(--gm);border-radius:9px;padding:9px 12px;font-size:var(--fsm);}
@@ -118,6 +124,18 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
   </div>
 </div>
 
+<!-- Confirmação extra ao resetar o contador -->
+<div class="sys-bg" id="confirm-reset-bg">
+  <div class="pwd-box">
+    <div class="pwd-ttl">🔄 Resetar Contador</div>
+    <div style="font-size:var(--fsm);color:#374151;margin-bottom:16px;line-height:1.55;">Deseja também limpar o histórico de fotos já usadas? Isso permite reenviar fotos que já foram compactadas antes.</div>
+    <div class="pwd-btns" style="flex-direction:column;gap:8px;">
+      <button class="pwd-ok" onclick="confirmarResetContador(true)">Sim, limpar tudo</button>
+      <button class="pwd-cc" onclick="confirmarResetContador(false)">Não, só o contador</button>
+    </div>
+  </div>
+</div>
+
 <!-- Changelog -->
 <div class="sys-bg cl-bg" id="cl-bg">
   <div class="cl-box">
@@ -134,8 +152,9 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
 
 <div class="page">
   <div class="header">
-    <a class="lock-badge" href="javascript:void(0)" onclick="abrirPwd()">🔒</a>
-    <a class="version-badge" href="javascript:void(0)" onclick="abrirChangelog()">v0.4</a>
+    <a class="lock-badge" href="javascript:void(0)" onclick="alternarPainelAdmin()">🔒</a>
+    <a class="lock-badge" href="javascript:void(0)" onclick="abrirPwd('reset')" style="left:42px;">🔄</a>
+    <a class="version-badge" href="javascript:void(0)" onclick="abrirChangelog()">v2.1</a>
     <div class="logo-wrap"><img id="logo-img" alt="Timenow"/></div>
     <h1>Registro Fotográfico de Obra</h1>
     <p>Despoeiramento do Topo — Arcelor Mittal Tubarão</p>
@@ -143,16 +162,16 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
 
   <!-- 01 / FOTOS DO DIA -->
   <div class="card">
-    <div class="sh"><span>01 / Fotos do Dia</span><span class="count-pill" id="countFotos">0</span></div>
+    <div class="sh sh-3col"><span>01 / Fotos da Obra</span><span class="gera-badge" id="contadorTituloTxt">RFO-000</span><span class="count-pill" id="countFotos">0</span></div>
     <div class="sb">
-      <div class="desc">Selecione fotos da galeria ou tire na hora. Depois gere o ZIP e compartilhe direto pelo WhatsApp, escolhendo o destinatário.</div>
+      <div class="desc">Clique no botão Adicionar Fotos</div>
       <input type="file" id="inputFotos" accept="image/*" multiple>
       <button class="btn-outline" onclick="document.getElementById('inputFotos').click()">➕ Adicionar Fotos</button>
       <div class="thumbs" id="thumbsFotos"></div>
     </div>
     <div style="padding:0 clamp(14px,3vw,20px) clamp(14px,3vw,20px);">
-      <button class="gbtn" id="btnCompartilhar" onclick="prepararZip()" disabled>📤 Gerar ZIP e Compartilhar no WhatsApp</button>
-      <button class="gbtn" id="btnCompartilharAgora" onclick="compartilharZipAgora()" style="display:none;margin-top:10px;background:linear-gradient(135deg,#16a34a,#22c55e);">📲 Toque para Compartilhar no WhatsApp</button>
+      <div class="status" id="proximoArquivoTxt" style="margin:0 0 8px;"></div>
+      <button class="gbtn" id="btnCompartilhar" onclick="compactarEEnviar()" disabled>📤 Compactar e Enviar</button>
       <div class="progress-wrap" id="progWrapZip"><div class="progress-bar" id="progBarZip"></div></div>
       <div class="status" id="statusZip"></div>
     </div>
@@ -160,28 +179,35 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
 
   <!-- 02 / PAINEL DO RESPONSAVEL -->
   <div class="card">
-    <div class="sh"><span>02 / Painel do Responsável</span><button class="sh-btn" id="btnBloqueado" onclick="abrirPwd()">🔒 Bloqueado</button></div>
+    <div class="sh"><span>02 / Painel do Responsável</span><button class="sh-btn" id="btnBloqueado" onclick="alternarPainelAdmin()">🔒 Bloqueado</button></div>
     <div class="sb">
-      <div class="desc">Junte os ZIPs recebidos dos colegas em uma apresentação PowerPoint (fade automático, 5s por foto), ou alimente um PowerPoint já exportado com novas fotos.</div>
+      <div class="desc">Neste painel, você pode juntar vários arquivos compactados para gerar uma apresentação de PowerPoint.</div>
       <div id="adminLockedMsg" style="text-align:center;color:#94a3b8;font-size:var(--fsm);font-family:monospace;padding:10px 0;">🔒 Toque em "Bloqueado" acima e informe a senha para liberar esta área.</div>
 
       <div id="adminPanel" style="display:none;">
         <div class="admin-tag">🔓 Painel desbloqueado</div>
 
-        <div class="step-lbl">1️⃣ PowerPoint existente (opcional — alimentador)</div>
-        <input type="file" id="inputPptxCarregar" accept=".pptx">
-        <button class="btn-outline" onclick="document.getElementById('inputPptxCarregar').click()">📥 Carregar PowerPoint Existente</button>
+        <div class="step-lbl">Alimentador - Abra um arquivo do PowerPoint existente</div>
+        <input type="file" id="inputPptxCarregar" accept=".ppsx,.pptx">
+        <button class="btn-outline" onclick="document.getElementById('inputPptxCarregar').click()">📥 Abrir Arquivo PPSX</button>
         <div class="status" id="statusPptxCarregado"></div>
         <hr class="sep">
 
-        <div class="step-lbl">2️⃣ ZIPs de fotos recebidos <span class="count-pill" style="background:var(--gl);color:var(--g);" id="countZips">0</span></div>
-        <input type="file" id="inputZips" accept=".zip" multiple>
-        <button class="btn-outline" onclick="document.getElementById('inputZips').click()">📦 Selecionar ZIPs</button>
+        <div class="step-lbl">Limpar Apresentação (remover fotos repetidas)</div>
+        <input type="file" id="inputPptxLimpar" accept=".ppsx,.pptx">
+        <button class="btn-outline" onclick="document.getElementById('inputPptxLimpar').click()">🧹 Selecionar PPSX para Limpar</button>
+        <div class="status" id="statusPptxLimpar"></div>
+        <hr class="sep">
+
+        <div class="step-lbl">Selecione o(s) arquivos Compactados <span class="count-pill" style="background:var(--gl);color:var(--g);" id="countZips">0</span></div>
+        <input type="file" id="inputZips" accept=".zip,.txt,image/*,application/octet-stream,*/*" multiple>
+        <button class="btn-outline" onclick="document.getElementById('inputZips').click()">📦 Selecionar Arquivo</button>
+        <div class="status" id="statusZipsInfo">Aceita ZIP, arquivos sem extensão (do WhatsApp) ou fotos soltas.</div>
         <div class="filelist" id="listaZips"></div>
         <hr class="sep">
 
         <div class="step-lbl">3️⃣ Gerar apresentação</div>
-        <button class="gbtn" id="btnGerarPptx" onclick="gerarApresentacao()" disabled>🎬 Gerar PowerPoint</button>
+        <button class="gbtn" id="btnGerarPptx" onclick="gerarApresentacao()" disabled><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:4px;" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="20" height="18" rx="2" fill="#D24726"/><rect x="5.5" y="6.5" width="8" height="11" rx="1" fill="#fff"/><path d="M7 8.5h2.4c1.3 0 2.1.75 2.1 1.9s-.8 1.9-2.1 1.9H8.4V14H7V8.5zm1.4 1.1v1.5h.9c.6 0 .9-.28.9-.75s-.3-.75-.9-.75h-.9z" fill="#D24726"/><rect x="15" y="7" width="6" height="1.6" rx="0.5" fill="#fff"/><rect x="15" y="10" width="6" height="1.6" rx="0.5" fill="#fff"/><rect x="15" y="13" width="4.2" height="1.6" rx="0.5" fill="#fff"/></svg>Gerar PowerPoint</button>
         <div class="progress-wrap" id="progWrapPptx"><div class="progress-bar" id="progBarPptx"></div></div>
         <div class="status" id="statusPptx"></div>
       </div>
@@ -197,12 +223,77 @@ document.getElementById('logo-img').src='data:image/png;base64,iVBORw0KGgoAAAANS
 
 /* ── RODAPÉ DINÂMICO ──────────────────────────────────────────────────────*/
 var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+function nomeArquivoObra(ext){
+  var d = new Date();
+  return 'TNE-RFO-'+MESES[d.getMonth()]+'-'+d.getFullYear()+'.'+ext;
+}
 function getRodape(){ var d=new Date(); return 'TimeNow Engenharia \u2014 '+MESES[d.getMonth()]+' '+d.getFullYear(); }
 document.getElementById('rodape').textContent = getRodape();
 document.getElementById('cl-mes-ano').textContent = (function(){var d=new Date();return MESES[d.getMonth()]+' '+d.getFullYear();})();
 
 /* ── CHANGELOG ────────────────────────────────────────────────────────────*/
 var CL = {
+  "v2.1": [
+    "Correção de orientação: fotos em pé continuam em pé e fotos deitadas continuam deitadas na apresentação — antes o PowerPoint podia exibir algumas fotos giradas/distorcidas, mesmo que a foto original estivesse correta.",
+    "Fotos são automaticamente redimensionadas e comprimidas ao entrar na apresentação (mantendo boa qualidade visual), reduzindo bastante o tamanho final do arquivo e deixando-o mais rápido para abrir.",
+    "Apresentação agora entra em loop automático: ao terminar a última foto, volta para a primeira e continua, sem precisar reiniciar manualmente."
+  ],
+  "v2.0": [
+    "Marca d'água da TimeNow volta a aparecer nas apresentações, mas agora como um elemento do próprio slide do PowerPoint (opacidade nativa) — nunca mais gravada nos pixels da foto. Isso mantém as fotos originais sempre limpas.",
+    "Novo recurso \"🧹 Limpar Apresentação\": abre qualquer PPSX já gerado, identifica fotos repetidas pelo conteúdo e gera uma cópia só com fotos únicas, já removendo as imagens que ficaram sem uso."
+  ],
+  "v1.9": [
+    "Correção importante: ao alimentar um PPSX já existente, o app agora reconhece as fotos que já estão dentro dele. Se você selecionar de novo os mesmos arquivos (por engano ou não), essas fotos são identificadas como repetidas e não entram duplicadas na apresentação — só fotos realmente novas são adicionadas."
+  ],
+  "v1.7": [
+    "Painel do Responsável agora pode ser bloqueado de novo a qualquer momento com um toque, sem precisar da senha (a senha só é pedida para desbloquear).",
+    "Corrigida a centralização do badge \"RFO-XXX\" no meio do título da seção de fotos."
+  ],
+  "v1.6": [
+    "Ajustes internos de estabilidade e limpeza de código."
+  ],
+  "v1.4": [
+    "Badge \"RFO-XXX\" no meio do título da seção de fotos, mostrando quantas vezes a compactação já foi gerada. Badge de contagem de fotos um pouco maior.",
+    "Resetar o contador agora pergunta se quer limpar também o histórico de fotos já usadas (Sim = libera reenviar fotos antigas / Não = só zera a numeração).",
+    "Apresentação (PPSX) agora sai nomeada TNE-RFO-MÊS-ANO (ex: TNE-RFO-JUL-2026)."
+  ],
+  "v1.3": [
+    "Efeito memória: o app agora lembra (no próprio aparelho) quais fotos já foram compactadas e enviadas antes, pelo conteúdo da foto, não pelo nome do arquivo.",
+    "Se uma foto repetida de um envio anterior for adicionada de novo, ela aparece na lista com um X vermelho cobrindo a miniatura, e é automaticamente excluída da próxima compactação."
+  ],
+  "v1.2": [
+    "Arquivo compactado agora é nomeado TNE-RFO-XXX (contador sequencial: 001, 002, 003...), salvo permanentemente no aparelho.",
+    "Novo botão \"🔄\" no topo (ao lado do cadeado) para reiniciar esse contador — pede a mesma senha do Painel do Responsável.",
+    "Botões de compactar e compartilhar unificados em um só: \"Compactar e Enviar\".",
+    "A lista de fotos é limpa automaticamente depois que o envio pelo WhatsApp é concluído com sucesso."
+  ],
+  "v1.1": [
+    "Correção: o arquivo compartilhado no WhatsApp precisa ter uma extensão reconhecida (.txt) para o navegador aceitar o compartilhamento — sem extensão nenhuma, o Windows e o Android bloqueiam do mesmo jeito (mesmo motor por trás dos dois). O Painel do Responsável continua lendo pelo conteúdo, não pela extensão."
+  ],
+  "v0.9": [
+    "Correção importante: o seletor de arquivo do Painel do Responsável estava filtrando e escondendo arquivos sem extensão — exatamente o tipo que chega pelo WhatsApp agora. Corrigido para aceitar qualquer arquivo.",
+    "Novo botão \"💾 Salvar .zip\" ao lado de cada arquivo selecionado sem extensão .zip — baixa uma cópia já renomeada, caso queira guardar ou abrir fora do app."
+  ],
+  "v0.8": [
+    "Arquivo compartilhado no WhatsApp agora vai sem extensão (o Painel do Responsável já reconhece pelo conteúdo, não pela extensão).",
+    "Apresentação gerada agora é .ppsx (PowerPoint Show) — abre direto em tela cheia com duplo clique, sem cair no modo de edição.",
+    "Alimentador aceita tanto .ppsx quanto .pptx antigos."
+  ],
+  "v0.7": [
+    "Ajustes de textos e rótulos em toda a tela para deixar as instruções mais diretas.",
+    "Ícone do botão de gerar apresentação trocado para um ícone no estilo PowerPoint (não é o logotipo oficial da Microsoft, que é uma marca registrada)."
+  ],
+  "v0.6": [
+    "Voltou o fluxo original: fotos são zipadas e compartilhadas como um único arquivo.",
+    "O ZIP é disfarçado como .txt só na hora de compartilhar (contorna o bloqueio do Android/Chrome a arquivos .zip no compartilhamento nativo) — o WhatsApp recebe e entrega o arquivo normalmente.",
+    "O Painel do Responsável detecta e lê como ZIP qualquer arquivo recebido, não importa a extensão (.zip, .txt, etc.) — nenhuma ação manual de renomear é necessária."
+  ],
+  "v0.5": [
+    "Correção definitiva do compartilhamento: o Android/Chrome bloqueia por segurança o compartilhamento de arquivos .zip via WhatsApp (só permite imagem, vídeo, áudio e texto) — por isso o erro persistia mesmo publicado em HTTPS.",
+    "Agora o botão principal compartilha as fotos diretamente (tipo permitido), abrindo a seleção do WhatsApp normalmente, com toque único.",
+    "Botão \"Baixar ZIP\" separado, para quem preferir enviar tudo como um único arquivo manualmente.",
+    "Painel do responsável agora aceita tanto ZIPs quanto fotos soltas recebidas dos colegas."
+  ],
   "v0.4": [
     "Mensagem de erro do compartilhamento agora mostra o detalhe técnico (nome/mensagem do navegador), facilitando diagnóstico.",
     "Importante: o compartilhamento nativo de arquivo (WhatsApp) só funciona quando o app está publicado e acessado por HTTPS (ex: GitHub Pages) — não funciona ao abrir o HTML como arquivo local/baixado."
@@ -238,13 +329,81 @@ function abrirChangelog(){
 
 /* ── SENHA / PAINEL DO RESPONSÁVEL ───────────────────────────────────────*/
 var ADMIN_PASS = "TimeNow001*";
+var acaoSenhaPendente = 'admin';
 var adminUnlocked = false;
-function abrirPwd(){
-  if(adminUnlocked) return;
+
+/* ── CONTADOR PERSISTENTE (TNE-RFO-XXX) ──────────────────────────────────*/
+// Chave fixa: não deve mudar entre versões, ou o contador reinicia sem querer.
+var CONTADOR_KEY = 'rfo_contador_v1';
+function formatarContador(n){ return String(n).padStart(3,'0'); }
+function obterProximoContador(){
+  var atual = parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+  if(isNaN(atual)) atual = 0;
+  var proximo = atual + 1;
+  localStorage.setItem(CONTADOR_KEY, String(proximo));
+  return proximo;
+}
+function atualizarExibicaoContador(){
+  var atual = parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+  if(isNaN(atual)) atual = 0;
+  var el = document.getElementById('proximoArquivoTxt');
+  if(el) el.textContent = 'Próximo arquivo: TNE-RFO-'+formatarContador(atual+1);
+  var elTitulo = document.getElementById('contadorTituloTxt');
+  if(elTitulo) elTitulo.textContent = 'RFO-'+formatarContador(atual);
+}
+atualizarExibicaoContador();
+
+/* ── MEMÓRIA DE FOTOS JÁ USADAS (persistente no aparelho) ────────────────*/
+// Chave fixa: não deve mudar entre versões, ou o histórico se perde.
+var HISTORICO_KEY = 'rfo_fotos_usadas_v1';
+function carregarHistoricoUsadas(){
+  try{
+    var raw = localStorage.getItem(HISTORICO_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function jaFoiUsada(hash){
+  var hist = carregarHistoricoUsadas();
+  return !!hist[hash];
+}
+function registrarComoUsada(hash){
+  var hist = carregarHistoricoUsadas();
+  hist[hash] = Date.now();
+  try{ localStorage.setItem(HISTORICO_KEY, JSON.stringify(hist)); }catch(e){}
+}
+function confirmarResetContador(limparHistoricoTambem){
+  document.getElementById('confirm-reset-bg').className='sys-bg';
+  localStorage.setItem(CONTADOR_KEY, '0');
+  if(limparHistoricoTambem){
+    try{ localStorage.removeItem(HISTORICO_KEY); }catch(e){}
+  }
+  atualizarExibicaoContador();
+  alert(limparHistoricoTambem
+    ? 'Contador reiniciado e histórico de fotos já usadas foi limpo! Próximo arquivo será TNE-RFO-001.'
+    : 'Contador reiniciado! Próximo arquivo será TNE-RFO-001. O histórico de fotos já usadas foi mantido.');
+}
+
+function abrirPwd(acao){
+  acaoSenhaPendente = acao || 'admin';
+  if(acaoSenhaPendente === 'admin' && adminUnlocked) return;
   document.getElementById('pwd-inp').value='';
   document.getElementById('pwd-err').style.display='none';
+  document.querySelector('#pwd-bg .pwd-ttl').textContent = (acaoSenhaPendente==='reset') ? '🔄 Resetar Contador' : '🔒 Painel do Responsável';
   document.getElementById('pwd-bg').className='sys-bg open';
   setTimeout(function(){ document.getElementById('pwd-inp').focus(); }, 100);
+}
+function alternarPainelAdmin(){
+  if(adminUnlocked){
+    // Já está desbloqueado: bloqueia de novo sem pedir senha.
+    adminUnlocked = false;
+    document.getElementById('adminLockedMsg').style.display='block';
+    document.getElementById('adminPanel').style.display='none';
+    var btnB = document.getElementById('btnBloqueado');
+    btnB.textContent = '🔒 Bloqueado';
+    btnB.disabled = false;
+  } else {
+    abrirPwd('admin');
+  }
 }
 function confirmarSenha(){
   var pwd = document.getElementById('pwd-inp').value;
@@ -254,12 +413,17 @@ function confirmarSenha(){
     return;
   }
   document.getElementById('pwd-bg').className='sys-bg';
+
+  if(acaoSenhaPendente === 'reset'){
+    document.getElementById('confirm-reset-bg').className='sys-bg open';
+    return;
+  }
+
   adminUnlocked = true;
   document.getElementById('adminLockedMsg').style.display='none';
   document.getElementById('adminPanel').style.display='block';
   var btnB = document.getElementById('btnBloqueado');
   btnB.textContent = '🔓 Desbloqueado';
-  btnB.disabled = true;
 }
 
 /* ── HASH (detecta fotos/imagens repetidas pelo conteúdo, não só pelo nome) ─*/
@@ -288,6 +452,7 @@ document.getElementById('inputFotos').addEventListener('change', async function(
   var arquivos = Array.from(e.target.files);
   e.target.value='';
   var duplicadas = 0;
+  var jaUsadasCount = 0;
   for(var i=0;i<arquivos.length;i++){
     var f = arquivos[i];
     try{
@@ -300,31 +465,39 @@ document.getElementById('inputFotos').addEventListener('change', async function(
         duplicadas++;
         continue; // foto repetida (mesmo conteúdo já selecionado) — ignorada
       }
+      var usadaAntes = jaFoiUsada(hash);
+      if(usadaAntes) jaUsadasCount++;
       var blobEstavel = new Blob([buffer], {type: f.type || 'image/jpeg'});
-      fotos.push({ name: f.name, type: f.type, buffer: buffer, hash: hash, url: URL.createObjectURL(blobEstavel) });
+      fotos.push({ name: f.name, type: f.type, buffer: buffer, hash: hash, url: URL.createObjectURL(blobEstavel), usadaAntes: usadaAntes });
       renderFotos();
     }catch(err){
       alert('Não foi possível ler a foto "'+f.name+'": '+(err.message||err));
     }
   }
+  var avisos = [];
   if(duplicadas>0){
+    avisos.push(duplicadas+(duplicadas>1?' fotos repetidas ignoradas':' foto repetida ignorada'));
+  }
+  if(jaUsadasCount>0){
+    avisos.push(jaUsadasCount+(jaUsadasCount>1?' fotos já usadas antes (marcadas com X, não entram na compactação)':' foto já usada antes (marcada com X, não entra na compactação)'));
+  }
+  if(avisos.length){
     var st = document.getElementById('statusZip');
     st.className='status';
-    st.textContent = duplicadas+(duplicadas>1?' fotos repetidas ignoradas':' foto repetida ignorada')+' (já estava'+(duplicadas>1?'m':'')+' na lista).';
+    st.textContent = avisos.join(' \u2014 ')+'.';
   }
 });
 function renderFotos(){
   var wrap = document.getElementById('thumbsFotos');
   wrap.innerHTML = fotos.map(function(f,i){
-    return '<div class="thumb"><img src="'+f.url+'"><button class="rm" onclick="removerFoto('+i+')">\u2715</button></div>';
+    var overlay = f.usadaAntes ? '<div class="thumb-usada" title="Esta foto já foi usada em um envio anterior">\u2715</div>' : '';
+    return '<div class="thumb"><img src="'+f.url+'">'+overlay+'<button class="rm" onclick="removerFoto('+i+')">\u2715</button></div>';
   }).join('');
   document.getElementById('countFotos').textContent = fotos.length;
   document.getElementById('btnCompartilhar').disabled = fotos.length===0;
-  // Se a lista de fotos mudou, o ZIP já gerado (se houver) fica desatualizado.
-  zipPronto = null;
-  document.getElementById('btnCompartilharAgora').style.display = 'none';
 }
 function removerFoto(i){ fotos.splice(i,1); renderFotos(); }
+function limparFotos(){ fotos = []; renderFotos(); }
 
 function nomeSeguro(nome, i){
   var ext = (nome.split('.').pop()||'jpg').toLowerCase();
@@ -343,72 +516,81 @@ function baixarBlob(blob, nome){
   setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
 }
 
-var zipPronto = null; // { blob, file, nome }
-
-async function prepararZip(){
+async function compactarEEnviar(){
   var statusEl = document.getElementById('statusZip');
   var progWrap = document.getElementById('progWrapZip');
   var progBar = document.getElementById('progBarZip');
-  var btnGerar = document.getElementById('btnCompartilhar');
-  var btnAgora = document.getElementById('btnCompartilharAgora');
+  var btn = document.getElementById('btnCompartilhar');
 
-  btnAgora.style.display = 'none';
-  zipPronto = null;
+  btn.disabled = true;
   statusEl.className='status'; statusEl.textContent='Compactando fotos...';
   progWrap.style.display='block'; progBar.style.width='0%';
-  btnGerar.disabled = true;
 
   try{
-    var zip = new JSZip();
-    fotos.forEach(function(f,i){ zip.file(nomeSeguro(f.name,i), f.buffer); });
-    var blob = await zip.generateAsync({type:'blob'}, function(meta){ progBar.style.width = meta.percent.toFixed(0)+'%'; });
-    var nomeZip = 'obra_fotos_'+carimboData()+'.zip';
-    var zipFile = new File([blob], nomeZip, {type:'application/zip'});
-    zipPronto = { blob: blob, file: zipFile, nome: nomeZip };
+    var fotosParaEnviar = fotos.filter(function(f){ return !f.usadaAntes; });
+    var fotosBloqueadas = fotos.length - fotosParaEnviar.length;
 
-    if(navigator.canShare && navigator.canShare({files:[zipFile]})){
-      // Não chamamos navigator.share aqui: o navegador exige que o compartilhamento
-      // seja disparado direto por um clique do usuário, sem espera assíncrona antes.
-      // Por isso liberamos um segundo botão — o toque nele é o gesto válido.
-      statusEl.className='status ok';
-      statusEl.textContent = 'ZIP pronto! Toque no botão verde abaixo para compartilhar no WhatsApp.';
-      btnAgora.style.display='block';
+    if(fotosParaEnviar.length===0){
+      statusEl.className='status err';
+      statusEl.textContent = 'Todas as fotos selecionadas já foram usadas em um envio anterior. Adicione fotos novas.';
+      btn.disabled = fotos.length===0;
+      progWrap.style.display='none';
+      return;
+    }
+
+    var zip = new JSZip();
+    fotosParaEnviar.forEach(function(f,i){ zip.file(nomeSeguro(f.name,i), f.buffer); });
+    var blob = await zip.generateAsync({type:'blob'}, function(meta){ progBar.style.width = meta.percent.toFixed(0)+'%'; });
+
+    var numero = obterProximoContador();
+    var codigo = 'TNE-RFO-'+formatarContador(numero);
+    var nomeReal = codigo+'.zip';
+    atualizarExibicaoContador();
+    fotosParaEnviar.forEach(function(f){ registrarComoUsada(f.hash); });
+
+    // O Android/Chrome/Windows bloqueia por segurança o compartilhamento de
+    // arquivos .zip via Web Share (só libera imagem, vídeo, áudio e texto).
+    // Para contornar, compartilhamos o MESMO conteúdo do zip disfarçado como
+    // um arquivo .txt — o Painel do Responsável detecta e trata como zip
+    // automaticamente, não importa a extensão do arquivo recebido.
+    var nomeDisfarcado = codigo+'.txt';
+    var arquivoDisfarcado = new File([blob], nomeDisfarcado, {type:'text/plain'});
+
+    if(navigator.canShare && navigator.canShare({files:[arquivoDisfarcado]})){
+      try{
+        await navigator.share({
+          files:[arquivoDisfarcado],
+          title:'Fotos da obra',
+          text:'Fotos da obra \u2014 '+getRodape()
+        });
+        statusEl.className='status ok';
+        statusEl.textContent = 'Enviado! ('+codigo+') Escolha o WhatsApp e o destinatário.'
+          + (fotosBloqueadas>0 ? ' ('+fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '');
+        limparFotos();
+      }catch(err){
+        if(err && err.name==='AbortError'){
+          statusEl.className='status';
+          statusEl.textContent = 'Envio cancelado.';
+        } else {
+          baixarBlob(blob, nomeReal);
+          statusEl.className='status';
+          statusEl.textContent = 'Não foi possível abrir o compartilhamento direto (' + (err && err.name || 'erro') + '). O ZIP foi baixado como "'+nomeReal+'" \u2014 anexe-o manualmente no WhatsApp.'
+            + (fotosBloqueadas>0 ? ' ('+fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '');
+        }
+      }
     } else {
-      baixarBlob(blob, nomeZip);
+      baixarBlob(blob, nomeReal);
       statusEl.className='status';
-      statusEl.textContent = 'Este navegador não permite compartilhar arquivos direto. O ZIP foi baixado \u2014 anexe-o manualmente no WhatsApp.';
+      statusEl.textContent = 'Este navegador não permite compartilhar arquivos direto. O ZIP foi baixado como "'+nomeReal+'" \u2014 anexe-o manualmente no WhatsApp.'
+        + (fotosBloqueadas>0 ? ' ('+fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '');
     }
   }catch(err){
     statusEl.className='status err';
     statusEl.textContent = 'Erro ao gerar o ZIP: '+(err.message||err);
   } finally {
     progWrap.style.display='none';
-    btnGerar.disabled = fotos.length===0;
+    btn.disabled = fotos.length===0;
   }
-}
-
-function compartilharZipAgora(){
-  if(!zipPronto) return;
-  var statusEl = document.getElementById('statusZip');
-  // Chamado diretamente pelo clique — precisa ser síncrono até aqui para o
-  // navegador aceitar o compartilhamento.
-  navigator.share({
-    files:[zipPronto.file],
-    title:'Fotos da obra',
-    text:'Fotos da obra \u2014 '+getRodape()
-  }).then(function(){
-    statusEl.className='status ok';
-    statusEl.textContent = 'Compartilhado! Escolha o WhatsApp e o destinatário na tela de compartilhamento.';
-  }).catch(function(err){
-    if(err && err.name==='AbortError'){
-      statusEl.className='status';
-      statusEl.textContent = 'Compartilhamento cancelado.';
-    } else {
-      baixarBlob(zipPronto.blob, zipPronto.nome);
-      statusEl.className='status';
-      statusEl.textContent = 'Não foi possível abrir o compartilhamento direto (' + (err && err.name || 'erro') + ': ' + (err && err.message || err) + '). O ZIP foi baixado \u2014 anexe-o manualmente no WhatsApp.';
-    }
-  });
 }
 
 /* ── BLOCO 02: CARREGAR PPTX / ZIPS ──────────────────────────────────────*/
@@ -422,7 +604,19 @@ document.getElementById('inputPptxCarregar').addEventListener('change', async fu
     var buffer = await f.arrayBuffer();
     var zip = await JSZip.loadAsync(buffer);
     var n = Object.keys(zip.files).filter(function(nm){return /^ppt\/slides\/slide\d+\.xml$/.test(nm);}).length;
-    pptxCarregado = { name: f.name, buffer: buffer };
+
+    // Calcula o hash de cada foto já embutida nesta apresentação. Assim, se os
+    // mesmos arquivos/fotos forem selecionados de novo no passo 2, elas são
+    // reconhecidas como repetidas e não entram duplicadas na apresentação.
+    var hashesExistentes = {};
+    var mediaFiles = Object.keys(zip.files).filter(function(nm){ return /^ppt\/media\/image\d+\.(jpe?g|png)$/i.test(nm); });
+    for(var m=0; m<mediaFiles.length; m++){
+      var mbuf = await zip.file(mediaFiles[m]).async('arraybuffer');
+      var mhash = await hashBuffer(mbuf);
+      hashesExistentes[mhash] = true;
+    }
+
+    pptxCarregado = { name: f.name, buffer: buffer, hashesExistentes: hashesExistentes };
     statusEl.className='status ok';
     statusEl.textContent = 'Carregado: '+f.name+' ('+n+' slide'+(n===1?'':'s')+' já existentes).';
   }catch(err){
@@ -449,21 +643,35 @@ document.getElementById('inputZips').addEventListener('change', async function(e
 function renderZips(){
   document.getElementById('countZips').textContent = zips.length;
   document.getElementById('listaZips').innerHTML = zips.map(function(z,i){
-    return '<div class="filerow"><span>\ud83d\udce6 '+z.name+'</span><button class="ef-rm" onclick="removerZip('+i+')">Remover</button></div>';
+    var jaTemZip = /\.zip$/i.test(z.name);
+    var btnSalvar = jaTemZip ? '' : '<button class="ef-rm" style="background:rgba(26,92,68,.1);color:var(--g);" onclick="salvarComoZip('+i+')">💾 Salvar .zip</button>';
+    return '<div class="filerow"><span>\ud83d\udce6 '+z.name+'</span>'+btnSalvar+'<button class="ef-rm" onclick="removerZip('+i+')">Remover</button></div>';
   }).join('');
   atualizarBotaoGerar();
 }
 function removerZip(i){ zips.splice(i,1); renderZips(); }
-function atualizarBotaoGerar(){ document.getElementById('btnGerarPptx').disabled = zips.length===0; }
+function salvarComoZip(i){
+  var z = zips[i];
+  if(!z) return;
+  var nomeBase = z.name.replace(/\.[^.]+$/, ''); // remove qualquer extensão atual, se houver
+  baixarBlob(new Blob([z.buffer]), nomeBase+'.zip');
+}
+function atualizarBotaoGerar(){
+  document.getElementById('btnGerarPptx').disabled = zips.length===0;
+}
 
 /* ── GERADOR DE PPTX (OOXML manual via JSZip) ────────────────────────────*/
 var EMU_W = 12192000, EMU_H = 6858000;
 
+var LOGO_MARCA_PPTX_B64 = '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';
 var THEME_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TimeNow"><a:themeElements><a:clrScheme name="TimeNow"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F1F1F"/></a:dk2><a:lt2><a:srgbClr val="E8E8E8"/></a:lt2><a:accent1><a:srgbClr val="1A5C44"/></a:accent1><a:accent2><a:srgbClr val="22744F"/></a:accent2><a:accent3><a:srgbClr val="B8A06A"/></a:accent3><a:accent4><a:srgbClr val="C62828"/></a:accent4><a:accent5><a:srgbClr val="6A1B9A"/></a:accent5><a:accent6><a:srgbClr val="00838F"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="TimeNow"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TimeNow"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
 
 function xmlContentTypes(slideCount){
   var ov=''; for(var i=1;i<=slideCount;i++) ov+='<Override PartName="/ppt/slides/slide'+i+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'+ov+'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'+ov+'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
+}
+function xmlPresProps(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:presentationPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:showPr loop="1"/></p:presentationPr>';
 }
 function xmlRootRels(){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>';
@@ -482,6 +690,7 @@ function xmlPresentation(slideIds){
 function xmlPresentationRels(slideCount){
   var r='<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
   for(var i=1;i<=slideCount;i++) r+='<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+i+'.xml"/>';
+  r+='<Relationship Id="rId9999" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+r+'</Relationships>';
 }
 function xmlSlideMaster(){
@@ -502,50 +711,109 @@ function fitRect(imgW, imgH){
   else { cy = EMU_H; cx = Math.round(EMU_H*imgRatio); }
   return { x: Math.round((EMU_W-cx)/2), y: Math.round((EMU_H-cy)/2), cx: cx, cy: cy };
 }
+var LOGO_MARCA_RATIO = 555/553; // altura/largura da logo original
 function xmlSlide(imgW, imgH){
   var r = fitRect(imgW, imgH);
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Foto"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+r.x+'" y="'+r.y+'"/><a:ext cx="'+r.cx+'" cy="'+r.cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:transition spd="med" advTm="5000"><p:fade/></p:transition></p:sld>';
+  var logoW = Math.round(EMU_W * 0.09);
+  var logoH = Math.round(logoW * LOGO_MARCA_RATIO);
+  var margem = Math.round(EMU_W * 0.02);
+  var lx = EMU_W - logoW - margem;
+  var ly = EMU_H - logoH - margem;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Foto"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+r.x+'" y="'+r.y+'"/><a:ext cx="'+r.cx+'" cy="'+r.cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic><p:pic><p:nvPicPr><p:cNvPr id="3" name="Marca"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId3"><a:alphaModFix amt="20000"/></a:blip><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+lx+'" y="'+ly+'"/><a:ext cx="'+logoW+'" cy="'+logoH+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:transition spd="med" advTm="5000"><p:fade/></p:transition></p:sld>';
 }
 function xmlSlideRels(ext, slideIdx){
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image'+slideIdx+'.'+ext+'"/></Relationships>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image'+slideIdx+'.'+ext+'"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo_marca.png"/></Relationships>';
 }
 
-function getImageDimensions(buffer){
+var MAX_LADO_FOTO = 1920;   // maior lado da foto, em pixels, dentro da apresentação
+var QUALIDADE_JPEG = 0.82;  // qualidade da recompressão (reduz bastante o tamanho do arquivo)
+
+function corrigirEComprimirImagem(buffer){
   return new Promise(function(resolve){
     var blob = new Blob([buffer]);
+    function processar(fonte, largura, altura){
+      var escala = Math.min(1, MAX_LADO_FOTO / Math.max(largura, altura));
+      var outW = Math.max(1, Math.round(largura * escala));
+      var outH = Math.max(1, Math.round(altura * escala));
+      var canvas = document.createElement('canvas');
+      canvas.width = outW; canvas.height = outH;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(fonte, 0, 0, outW, outH);
+      canvas.toBlob(function(outBlob){
+        if(!outBlob){ resolve({buffer: buffer, width: largura, height: altura}); return; }
+        outBlob.arrayBuffer().then(function(outBuf){
+          resolve({buffer: outBuf, width: outW, height: outH});
+        }).catch(function(){ resolve({buffer: buffer, width: largura, height: altura}); });
+      }, 'image/jpeg', QUALIDADE_JPEG);
+    }
     if(window.createImageBitmap){
+      // "from-image" respeita a orientação EXIF da foto (retrato/paisagem
+      // continuam como foram tiradas). Ao desenhar no canvas essa correção fica
+      // gravada nos pixels — o PowerPoint não lê a tag EXIF sozinho, então sem
+      // isso, fotos em pé podiam aparecer giradas/distorcidas na apresentação.
       createImageBitmap(blob, {imageOrientation:'from-image'}).then(function(bmp){
-        resolve({width:bmp.width, height:bmp.height});
+        processar(bmp, bmp.width, bmp.height);
         if(bmp.close) bmp.close();
-      }).catch(function(){ fallbackDims(blob, resolve); });
-    } else { fallbackDims(blob, resolve); }
+      }).catch(function(){ fallbackProcessarImagem(blob, buffer, processar, resolve); });
+    } else {
+      fallbackProcessarImagem(blob, buffer, processar, resolve);
+    }
   });
 }
-function fallbackDims(blob, resolve){
+function fallbackProcessarImagem(blob, buffer, processar, resolve){
   var url = URL.createObjectURL(blob);
   var img = new Image();
-  img.onload = function(){ resolve({width:img.naturalWidth, height:img.naturalHeight}); URL.revokeObjectURL(url); };
-  img.onerror = function(){ resolve({width:1600, height:1200}); URL.revokeObjectURL(url); };
+  img.onload = function(){ processar(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
+  img.onerror = function(){ resolve({width:1600, height:1200, buffer: buffer}); URL.revokeObjectURL(url); };
   img.src = url;
 }
 function extFromName(name){
   return (name||'').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
 }
-async function extrairImagensDosZips(arquivosZip, onProgress){
+async function extrairImagensDosArquivos(arquivos, onProgress, hashesPreExistentes){
   var imagens = [];
   var hashesVistos = {};
+  if(hashesPreExistentes){
+    for(var k in hashesPreExistentes){
+      if(Object.prototype.hasOwnProperty.call(hashesPreExistentes, k)) hashesVistos[k] = true;
+    }
+  }
   var duplicadasIgnoradas = 0;
-  for(var z=0; z<arquivosZip.length; z++){
-    var zip = await JSZip.loadAsync(arquivosZip[z].buffer);
-    var entries = Object.values(zip.files).filter(function(e){ return !e.dir && /\.(jpe?g|png)$/i.test(e.name); });
-    for(var i=0;i<entries.length;i++){
-      var entry = entries[i];
-      var buffer = await entry.async('arraybuffer');
-      var hash = await hashBuffer(buffer);
-      if(hashesVistos[hash]){ duplicadasIgnoradas++; continue; } // mesma foto já recebida de outro colega/zip — ignorada
-      hashesVistos[hash] = true;
-      imagens.push({ name: entry.name, buffer: buffer, ext: extFromName(entry.name) });
-      if(onProgress) onProgress(imagens.length);
+  for(var z=0; z<arquivos.length; z++){
+    var arq = arquivos[z];
+    var nomeLower = arq.name.toLowerCase();
+    var ehImagemDireta = /\.(jpe?g|png)$/i.test(nomeLower);
+
+    if(ehImagemDireta){
+      // Foto solta (não zipada) selecionada diretamente
+      var hash2 = await hashBuffer(arq.buffer);
+      if(hashesVistos[hash2]){ duplicadasIgnoradas++; }
+      else{
+        hashesVistos[hash2] = true;
+        imagens.push({ name: arq.name, buffer: arq.buffer, ext: extFromName(arq.name) });
+        if(onProgress) onProgress(imagens.length);
+      }
+      continue;
+    }
+
+    // Não é imagem direta: tenta ler como ZIP, não importa a extensão do arquivo.
+    // Isso cobre tanto .zip normal quanto ZIPs disfarçados de .txt (para passar
+    // pela restrição de compartilhamento do Android/Chrome).
+    try{
+      var zip = await JSZip.loadAsync(arq.buffer);
+      var entries = Object.values(zip.files).filter(function(e){ return !e.dir && /\.(jpe?g|png)$/i.test(e.name); });
+      for(var i=0;i<entries.length;i++){
+        var entry = entries[i];
+        var buffer = await entry.async('arraybuffer');
+        var hash = await hashBuffer(buffer);
+        if(hashesVistos[hash]){ duplicadasIgnoradas++; continue; } // mesma foto já recebida de outro colega/zip — ignorada
+        hashesVistos[hash] = true;
+        imagens.push({ name: entry.name, buffer: buffer, ext: extFromName(entry.name) });
+        if(onProgress) onProgress(imagens.length);
+      }
+    }catch(e){
+      // Não era um ZIP válido nem uma imagem reconhecida — ignora esse arquivo.
+      continue;
     }
   }
   return { imagens: imagens, duplicadas: duplicadasIgnoradas };
@@ -557,28 +825,173 @@ async function criarNovaApresentacao(imagens, onProgress){
   zip.file('_rels/.rels', xmlRootRels());
   zip.file('docProps/core.xml', xmlCore());
   zip.file('docProps/app.xml', xmlApp(n));
+  zip.file('ppt/presProps.xml', xmlPresProps());
   zip.file('ppt/theme/theme1.xml', THEME_XML);
   zip.file('ppt/slideMasters/slideMaster1.xml', xmlSlideMaster());
   zip.file('ppt/slideMasters/_rels/slideMaster1.xml.rels', xmlSlideMasterRels());
   zip.file('ppt/slideLayouts/slideLayout1.xml', xmlSlideLayout());
   zip.file('ppt/slideLayouts/_rels/slideLayout1.xml.rels', xmlSlideLayoutRels());
+  zip.file('ppt/media/logo_marca.png', LOGO_MARCA_PPTX_B64, {base64:true});
 
   var slideIds = [];
   for(var i=1;i<=n;i++){
     slideIds.push({id:255+i, rid:i+1});
     var img = imagens[i-1];
-    var dims = await getImageDimensions(img.buffer);
-    zip.file('ppt/slides/slide'+i+'.xml', xmlSlide(dims.width, dims.height));
-    zip.file('ppt/slides/_rels/slide'+i+'.xml.rels', xmlSlideRels(img.ext, i));
-    zip.file('ppt/media/image'+i+'.'+img.ext, img.buffer);
+    var processado = await corrigirEComprimirImagem(img.buffer);
+    zip.file('ppt/slides/slide'+i+'.xml', xmlSlide(processado.width, processado.height));
+    zip.file('ppt/slides/_rels/slide'+i+'.xml.rels', xmlSlideRels('jpeg', i));
+    zip.file('ppt/media/image'+i+'.jpeg', processado.buffer);
     if(onProgress) onProgress(i, n);
   }
   zip.file('ppt/presentation.xml', xmlPresentation(slideIds));
   zip.file('ppt/_rels/presentation.xml.rels', xmlPresentationRels(n));
   return await zip.generateAsync({type:'blob'});
 }
+async function limparDuplicatasApresentacao(buffer, onStatus){
+  var zip = await JSZip.loadAsync(buffer);
+  var slideFiles = Object.keys(zip.files).filter(function(n){ return /^ppt\/slides\/slide\d+\.xml$/.test(n); });
+  var slideNums = slideFiles.map(function(n){ return parseInt(n.match(/slide(\d+)\.xml/)[1]); }).sort(function(a,b){ return a-b; });
+
+  var hashesVistos = {};
+  var slidesParaRemover = [];
+  var mantidos = 0;
+
+  for(var i=0;i<slideNums.length;i++){
+    var num = slideNums[i];
+    if(onStatus) onStatus('Analisando slide '+(i+1)+' de '+slideNums.length+'...');
+    var relsPath = 'ppt/slides/_rels/slide'+num+'.xml.rels';
+    var relsFile = zip.file(relsPath);
+    if(!relsFile){ mantidos++; continue; }
+    var relsXml = await relsFile.async('string');
+
+    // Acha a relação de imagem que NÃO é a marca d'água — ou seja, a foto em si.
+    var imgRegex = /<Relationship[^>]+Type="[^"]*\/image"[^>]+Target="([^"]+)"/g;
+    var match, fotoTarget = null;
+    while((match = imgRegex.exec(relsXml)) !== null){
+      if(!/logo_marca\.png$/i.test(match[1])){ fotoTarget = match[1]; break; }
+    }
+    if(!fotoTarget){ mantidos++; continue; }
+
+    var mediaPath = fotoTarget.replace('../', 'ppt/');
+    var mediaFile = zip.file(mediaPath);
+    if(!mediaFile){ mantidos++; continue; }
+    var mbuf = await mediaFile.async('arraybuffer');
+    var hash = await hashBuffer(mbuf);
+
+    if(hashesVistos[hash]){
+      slidesParaRemover.push(num);
+    } else {
+      hashesVistos[hash] = true;
+      mantidos++;
+    }
+  }
+
+  if(slidesParaRemover.length === 0){
+    return { blob: null, mantidos: mantidos, removidos: 0 };
+  }
+
+  slidesParaRemover.forEach(function(num){
+    zip.remove('ppt/slides/slide'+num+'.xml');
+    zip.remove('ppt/slides/_rels/slide'+num+'.xml.rels');
+  });
+
+  var presXml = await zip.file('ppt/presentation.xml').async('string');
+  var presRels = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
+  var ctypes = await zip.file('[Content_Types].xml').async('string');
+
+  var ridsParaRemover = [];
+  slidesParaRemover.forEach(function(num){
+    var re = new RegExp('<Relationship Id="(rId\\d+)"[^>]+Target="slides/slide'+num+'\\.xml"');
+    var m = presRels.match(re);
+    if(m) ridsParaRemover.push(m[1]);
+  });
+
+  ridsParaRemover.forEach(function(rid){
+    presXml = presXml.replace(new RegExp('<p:sldId[^>]+r:id="'+rid+'"\\s*/>'), '');
+    presRels = presRels.replace(new RegExp('<Relationship Id="'+rid+'"[^>]*/>'), '');
+  });
+  slidesParaRemover.forEach(function(num){
+    ctypes = ctypes.replace(new RegExp('<Override PartName="/ppt/slides/slide'+num+'\\.xml"[^>]*/>'), '');
+  });
+
+  zip.file('ppt/presentation.xml', presXml);
+  zip.file('ppt/_rels/presentation.xml.rels', presRels);
+  zip.file('[Content_Types].xml', ctypes);
+
+  // Remove os arquivos de mídia que ficaram órfãos (das fotos removidas), para
+  // não deixar partes soltas sem referência dentro do pacote.
+  var midiaEmUso = {};
+  var relsRestantes = Object.keys(zip.files).filter(function(n){ return /^ppt\/slides\/_rels\/slide\d+\.xml\.rels$/.test(n); });
+  for(var rr=0; rr<relsRestantes.length; rr++){
+    var relsTxt = await zip.file(relsRestantes[rr]).async('string');
+    var rmatch, re2 = /Target="\.\.\/media\/([^"]+)"/g;
+    while((rmatch = re2.exec(relsTxt)) !== null){ midiaEmUso[rmatch[1]] = true; }
+  }
+  var todasMidias = Object.keys(zip.files).filter(function(n){ return /^ppt\/media\//.test(n) && !zip.files[n].dir; });
+  todasMidias.forEach(function(caminho){
+    var nomeArquivo = caminho.replace('ppt/media/', '');
+    if(!midiaEmUso[nomeArquivo]) zip.remove(caminho);
+  });
+
+  var appFileEntry = zip.file('docProps/app.xml');
+  if(appFileEntry){
+    var appStr = await appFileEntry.async('string');
+    appStr = appStr.replace(/<Slides>\d+<\/Slides>/, '<Slides>'+mantidos+'</Slides>');
+    zip.file('docProps/app.xml', appStr);
+  }
+
+  var blob = await zip.generateAsync({type:'blob'});
+  return { blob: blob, mantidos: mantidos, removidos: slidesParaRemover.length };
+}
+
+document.getElementById('inputPptxLimpar').addEventListener('change', async function(e){
+  var f = e.target.files[0]; e.target.value='';
+  if(!f) return;
+  var statusEl = document.getElementById('statusPptxLimpar');
+  statusEl.className='status'; statusEl.textContent='Lendo apresentação...';
+  try{
+    var buffer = await f.arrayBuffer();
+    var resultado = await limparDuplicatasApresentacao(buffer, function(msg){ statusEl.textContent = msg; });
+    if(resultado.removidos === 0){
+      statusEl.className='status ok';
+      statusEl.textContent = 'Nenhuma foto repetida encontrada — a apresentação já está limpa ('+resultado.mantidos+' foto(s) única(s)).';
+      return;
+    }
+    var nomeArquivo = f.name.replace(/\.(pptx|ppsx)$/i,'') + '_limpo.ppsx';
+    baixarBlob(resultado.blob, nomeArquivo);
+    statusEl.className='status ok';
+    statusEl.textContent = 'Pronto! "'+nomeArquivo+'" gerado com '+resultado.mantidos+' foto(s) única(s) ('+resultado.removidos+' repetida(s) removida(s)).';
+  }catch(err){
+    statusEl.className='status err';
+    statusEl.textContent = 'Erro ao limpar a apresentação: '+(err.message||err);
+  }
+});
+
 async function alimentarApresentacaoExistente(pptxBuffer, imagens, onProgress){
   var zip = await JSZip.loadAsync(pptxBuffer);
+  if(!zip.file('ppt/media/logo_marca.png')){
+    zip.file('ppt/media/logo_marca.png', LOGO_MARCA_PPTX_B64, {base64:true});
+  }
+  // Garante o loop contínuo mesmo em apresentações geradas antes desse recurso existir.
+  var presPropsFile = zip.file('ppt/presProps.xml');
+  if(!presPropsFile){
+    zip.file('ppt/presProps.xml', xmlPresProps());
+    var ctypesAtual = await zip.file('[Content_Types].xml').async('string');
+    if(!/presProps\.xml/.test(ctypesAtual)){
+      ctypesAtual = ctypesAtual.replace('</Types>', '<Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/></Types>');
+      zip.file('[Content_Types].xml', ctypesAtual);
+    }
+    var presRelsAtual = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
+    if(!/presProps\.xml/.test(presRelsAtual)){
+      presRelsAtual = presRelsAtual.replace('</Relationships>', '<Relationship Id="rId9999" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/></Relationships>');
+      zip.file('ppt/_rels/presentation.xml.rels', presRelsAtual);
+    }
+  } else {
+    var presPropsTxt = await presPropsFile.async('string');
+    if(/<p:showPr[^>]*loop="0"/.test(presPropsTxt) || !/<p:showPr/.test(presPropsTxt)){
+      zip.file('ppt/presProps.xml', xmlPresProps());
+    }
+  }
   var slideFiles = Object.keys(zip.files).filter(function(n){ return /^ppt\/slides\/slide\d+\.xml$/.test(n); });
   var slideNums = slideFiles.map(function(n){ return parseInt(n.match(/slide(\d+)\.xml/)[1]); });
   var maxSlide = slideNums.length ? Math.max.apply(null, slideNums) : 0;
@@ -598,21 +1011,15 @@ async function alimentarApresentacaoExistente(pptxBuffer, imagens, onProgress){
   for(var i=0;i<n;i++){
     var slideIdx = maxSlide+i+1, rid = maxRid+i+1, sldId = maxId+i+1;
     var img = imagens[i];
-    var dims = await getImageDimensions(img.buffer);
-    zip.file('ppt/slides/slide'+slideIdx+'.xml', xmlSlide(dims.width, dims.height));
-    zip.file('ppt/slides/_rels/slide'+slideIdx+'.xml.rels', xmlSlideRels(img.ext, slideIdx));
-    zip.file('ppt/media/image'+slideIdx+'.'+img.ext, img.buffer);
+    var processado = await corrigirEComprimirImagem(img.buffer);
+    zip.file('ppt/slides/slide'+slideIdx+'.xml', xmlSlide(processado.width, processado.height));
+    zip.file('ppt/slides/_rels/slide'+slideIdx+'.xml.rels', xmlSlideRels('jpeg', slideIdx));
+    zip.file('ppt/media/image'+slideIdx+'.jpeg', processado.buffer);
     newSldIds += '<p:sldId id="'+sldId+'" r:id="rId'+rid+'"/>';
     newPresRels += '<Relationship Id="rId'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+slideIdx+'.xml"/>';
     newCtypes += '<Override PartName="/ppt/slides/slide'+slideIdx+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
     if(onProgress) onProgress(i+1, n);
   }
-
-  var extsUsadas = Array.from(new Set(imagens.map(function(im){return im.ext;})));
-  extsUsadas.forEach(function(ext){
-    var re = new RegExp('Extension="'+ext+'"');
-    if(!re.test(ctypes)) newCtypes = '<Default Extension="'+ext+'" ContentType="image/'+(ext==='jpeg'?'jpeg':'png')+'"/>' + newCtypes;
-  });
 
   zip.file('ppt/presentation.xml', presXml.replace('</p:sldIdLst>', newSldIds+'</p:sldIdLst>'));
   zip.file('ppt/_rels/presentation.xml.rels', presRels.replace('</Relationships>', newPresRels+'</Relationships>'));
@@ -638,15 +1045,16 @@ async function gerarApresentacao(){
   statusEl.className='status'; statusEl.textContent='Descompactando ZIPs recebidos...';
 
   try{
-    var resultado = await extrairImagensDosZips(zips, function(count){
+    var hashesPre = (pptxCarregado && pptxCarregado.hashesExistentes) ? pptxCarregado.hashesExistentes : null;
+    var resultado = await extrairImagensDosArquivos(zips, function(count){
       statusEl.textContent = 'Extraindo fotos... ('+count+' encontradas)';
-    });
+    }, hashesPre);
     var imagens = resultado.imagens;
     var duplicadas = resultado.duplicadas;
 
     if(imagens.length===0){
       statusEl.className='status err';
-      statusEl.textContent = 'Nenhuma imagem (.jpg/.png) encontrada dentro dos ZIPs selecionados.';
+      statusEl.textContent = 'Nenhuma imagem (.jpg/.png) encontrada nos arquivos selecionados.';
       btn.disabled = false; progWrap.style.display='none';
       return;
     }
@@ -666,9 +1074,7 @@ async function gerarApresentacao(){
       });
     }
 
-    var nomeArquivo = pptxCarregado
-      ? pptxCarregado.name.replace(/\.pptx$/i,'') + '_atualizado.pptx'
-      : 'apresentacao_obra_'+carimboData()+'.pptx';
+    var nomeArquivo = nomeArquivoObra('ppsx');
 
     baixarBlob(blob, nomeArquivo);
     progBar.style.width='100%';
