@@ -154,7 +154,7 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
   <div class="header">
     <a class="lock-badge" href="javascript:void(0)" onclick="alternarPainelAdmin()">🔒</a>
     <a class="lock-badge" href="javascript:void(0)" onclick="abrirPwd('reset')" style="left:42px;">🔄</a>
-    <a class="version-badge" href="javascript:void(0)" onclick="abrirChangelog()">v2.1</a>
+    <a class="version-badge" href="javascript:void(0)" onclick="abrirChangelog()">v3.1</a>
     <div class="logo-wrap"><img id="logo-img" alt="Timenow"/></div>
     <h1>Registro Fotográfico de Obra</h1>
     <p>Despoeiramento do Topo — Arcelor Mittal Tubarão</p>
@@ -170,8 +170,10 @@ hr.sep{border:none;border-top:1px solid var(--gm);margin:4px 0 0;}
       <div class="thumbs" id="thumbsFotos"></div>
     </div>
     <div style="padding:0 clamp(14px,3vw,20px) clamp(14px,3vw,20px);">
-      <div class="status" id="proximoArquivoTxt" style="margin:0 0 8px;"></div>
+      <div class="status" id="proximoArquivoTxt" style="margin:0 0 4px;"></div>
+      <div class="status" id="remetenteTxt" style="margin:0 0 8px;cursor:pointer;text-decoration:underline;" onclick="editarIniciaisRemetente()"></div>
       <button class="gbtn" id="btnCompartilhar" onclick="compactarEEnviar()" disabled>📤 Compactar e Enviar</button>
+      <button class="gbtn" id="btnEnviarAgora" onclick="enviarAgora()" style="display:none;margin-top:10px;background:linear-gradient(135deg,#16a34a,#22c55e);">📲 Toque para Enviar</button>
       <div class="progress-wrap" id="progWrapZip"><div class="progress-bar" id="progBarZip"></div></div>
       <div class="status" id="statusZip"></div>
     </div>
@@ -233,6 +235,21 @@ document.getElementById('cl-mes-ano').textContent = (function(){var d=new Date()
 
 /* ── CHANGELOG ────────────────────────────────────────────────────────────*/
 var CL = {
+  "v3.1": [
+    "Correção: ao adicionar muitas fotos de uma vez (lotes grandes), algumas no meio/fim da seleção podiam falhar com erro de permissão do Android. Agora todas são lidas em paralelo assim que você seleciona, em vez de uma por vez, reduzindo bastante o risco de falha em lotes grandes."
+  ],
+  "v3.0": [
+    "Novo layout de slides: fotos deitadas preenchem a tela cheia (com um leve corte quando a proporção não bate exatamente), com uma borda branca sutil, estilo foto antiga.",
+    "Fotos em pé (verticais) agora são agrupadas automaticamente aos pares, lado a lado, formando um slide horizontal — também com borda branca separando as duas.",
+    "Se sobrar uma foto em pé sem par, ela fica guardada no aparelho e entra automaticamente na próxima apresentação gerada, junto com a próxima foto em pé que aparecer.",
+    "Cada pessoa que compacta e envia fotos agora informa suas iniciais (uma vez só, fica salvo no aparelho) — elas entram no nome dos arquivos dentro do ZIP, evitando que fotos de pessoas diferentes se sobrescrevam ao juntar tudo numa mesma pasta."
+  ],
+  "v2.3": [
+    "Correção: envios após o primeiro da mesma sessão vinham falhando (\"o navegador esquece\" que foi um toque do usuário depois do primeiro compartilhamento). Agora a página recarrega sozinha logo depois de cada envio, garantindo que o próximo comece sempre \"do zero\", como da primeira vez."
+  ],
+  "v2.2": [
+    "Correção do envio no WhatsApp com lotes maiores de fotos: compactar muitas fotos de uma vez pode levar segundos suficientes para o navegador recusar o compartilhamento direto (por não reconhecer mais como um toque do usuário). Voltou o botão \"Toque para Enviar\" separado, que aparece assim que o arquivo termina de compactar — garante que o envio funcione mesmo com lotes grandes."
+  ],
   "v2.1": [
     "Correção de orientação: fotos em pé continuam em pé e fotos deitadas continuam deitadas na apresentação — antes o PowerPoint podia exibir algumas fotos giradas/distorcidas, mesmo que a foto original estivesse correta.",
     "Fotos são automaticamente redimensionadas e comprimidas ao entrar na apresentação (mantendo boa qualidade visual), reduzindo bastante o tamanho final do arquivo e deixando-o mais rápido para abrir.",
@@ -351,6 +368,40 @@ function atualizarExibicaoContador(){
   var elTitulo = document.getElementById('contadorTituloTxt');
   if(elTitulo) elTitulo.textContent = 'RFO-'+formatarContador(atual);
 }
+
+/* ── INICIAIS DE QUEM ESTÁ ENVIANDO (evita conflito de nomes ao juntar) ──*/
+var INICIAIS_KEY = 'rfo_iniciais_v1';
+function obterIniciaisSalvas(){
+  try{ return localStorage.getItem(INICIAIS_KEY) || ''; }catch(e){ return ''; }
+}
+function salvarIniciaisRemetente(v){
+  try{ localStorage.setItem(INICIAIS_KEY, v); }catch(e){}
+}
+function normalizarIniciais(v){
+  return (v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+}
+function garantirIniciaisRemetente(){
+  var atual = obterIniciaisSalvas();
+  if(!atual){
+    var digitado = prompt('Digite suas iniciais (2 a 4 letras) para identificar suas fotos, ex: JS ou RCM:');
+    atual = normalizarIniciais(digitado) || 'FOTO';
+    salvarIniciaisRemetente(atual);
+  }
+  atualizarExibicaoRemetente();
+  return atual;
+}
+function editarIniciaisRemetente(){
+  var atual = obterIniciaisSalvas();
+  var digitado = prompt('Suas iniciais (2 a 4 letras):', atual);
+  if(digitado === null) return;
+  var normalizado = normalizarIniciais(digitado);
+  if(normalizado){ salvarIniciaisRemetente(normalizado); atualizarExibicaoRemetente(); }
+}
+function atualizarExibicaoRemetente(){
+  var el = document.getElementById('remetenteTxt');
+  if(el) el.textContent = 'Enviando como: '+(obterIniciaisSalvas()||'?')+' (toque para alterar)';
+}
+atualizarExibicaoRemetente();
 atualizarExibicaoContador();
 
 /* ── MEMÓRIA DE FOTOS JÁ USADAS (persistente no aparelho) ────────────────*/
@@ -451,15 +502,31 @@ var pptxCarregado = null; // {name, buffer}
 document.getElementById('inputFotos').addEventListener('change', async function(e){
   var arquivos = Array.from(e.target.files);
   e.target.value='';
+
+  // Lê os bytes de TODOS os arquivos em paralelo, o mais rápido possível: em
+  // lotes grandes, ler um arquivo de cada vez (em sequência) pode levar tempo
+  // suficiente para o Android revogar o acesso aos arquivos que ainda não
+  // foram lidos, mesmo que cada leitura em si seja "imediata" na sua vez.
+  var leituras = arquivos.map(function(f){
+    return f.arrayBuffer().then(function(buffer){
+      return { file: f, buffer: buffer, erro: null };
+    }).catch(function(err){
+      return { file: f, buffer: null, erro: err };
+    });
+  });
+  var resultados = await Promise.all(leituras);
+
   var duplicadas = 0;
   var jaUsadasCount = 0;
-  for(var i=0;i<arquivos.length;i++){
-    var f = arquivos[i];
+  for(var i=0;i<resultados.length;i++){
+    var r = resultados[i];
+    if(r.erro){
+      alert('Não foi possível ler a foto "'+r.file.name+'": '+(r.erro.message||r.erro));
+      continue;
+    }
+    var f = r.file;
+    var buffer = r.buffer;
     try{
-      // Lê os bytes AGORA (na seleção) — em Android o seletor de fotos do sistema
-      // pode revogar o acesso ao arquivo original depois de um tempo, então não
-      // podemos confiar em ler o File/Blob mais tarde (ex: só na hora de zipar).
-      var buffer = await f.arrayBuffer();
       var hash = await hashBuffer(buffer);
       if(fotos.some(function(ft){ return ft.hash === hash; })){
         duplicadas++;
@@ -471,7 +538,7 @@ document.getElementById('inputFotos').addEventListener('change', async function(
       fotos.push({ name: f.name, type: f.type, buffer: buffer, hash: hash, url: URL.createObjectURL(blobEstavel), usadaAntes: usadaAntes });
       renderFotos();
     }catch(err){
-      alert('Não foi possível ler a foto "'+f.name+'": '+(err.message||err));
+      alert('Não foi possível processar a foto "'+f.name+'": '+(err.message||err));
     }
   }
   var avisos = [];
@@ -495,13 +562,16 @@ function renderFotos(){
   }).join('');
   document.getElementById('countFotos').textContent = fotos.length;
   document.getElementById('btnCompartilhar').disabled = fotos.length===0;
+  envioPronto = null;
+  document.getElementById('btnEnviarAgora').style.display = 'none';
 }
 function removerFoto(i){ fotos.splice(i,1); renderFotos(); }
 function limparFotos(){ fotos = []; renderFotos(); }
 
-function nomeSeguro(nome, i){
+function nomeSeguro(nome, i, iniciais){
   var ext = (nome.split('.').pop()||'jpg').toLowerCase();
-  return 'foto_'+String(i+1).padStart(3,'0')+'.'+ext;
+  var prefixo = iniciais ? (iniciais+'_') : '';
+  return prefixo+'foto_'+String(i+1).padStart(3,'0')+'.'+ext;
 }
 function carimboData(){
   var d = new Date();
@@ -516,12 +586,18 @@ function baixarBlob(blob, nome){
   setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
 }
 
+var envioPronto = null; // { blobReal, nomeReal, arquivoDisfarcado, codigo, fotosBloqueadas }
+
 async function compactarEEnviar(){
   var statusEl = document.getElementById('statusZip');
   var progWrap = document.getElementById('progWrapZip');
   var progBar = document.getElementById('progBarZip');
   var btn = document.getElementById('btnCompartilhar');
+  var btnAgora = document.getElementById('btnEnviarAgora');
+  var iniciais = garantirIniciaisRemetente();
 
+  btnAgora.style.display = 'none';
+  envioPronto = null;
   btn.disabled = true;
   statusEl.className='status'; statusEl.textContent='Compactando fotos...';
   progWrap.style.display='block'; progBar.style.width='0%';
@@ -539,7 +615,7 @@ async function compactarEEnviar(){
     }
 
     var zip = new JSZip();
-    fotosParaEnviar.forEach(function(f,i){ zip.file(nomeSeguro(f.name,i), f.buffer); });
+    fotosParaEnviar.forEach(function(f,i){ zip.file(nomeSeguro(f.name,i,iniciais), f.buffer); });
     var blob = await zip.generateAsync({type:'blob'}, function(meta){ progBar.style.width = meta.percent.toFixed(0)+'%'; });
 
     var numero = obterProximoContador();
@@ -556,28 +632,16 @@ async function compactarEEnviar(){
     var nomeDisfarcado = codigo+'.txt';
     var arquivoDisfarcado = new File([blob], nomeDisfarcado, {type:'text/plain'});
 
+    envioPronto = { blobReal: blob, nomeReal: nomeReal, arquivoDisfarcado: arquivoDisfarcado, codigo: codigo, fotosBloqueadas: fotosBloqueadas };
+
     if(navigator.canShare && navigator.canShare({files:[arquivoDisfarcado]})){
-      try{
-        await navigator.share({
-          files:[arquivoDisfarcado],
-          title:'Fotos da obra',
-          text:'Fotos da obra \u2014 '+getRodape()
-        });
-        statusEl.className='status ok';
-        statusEl.textContent = 'Enviado! ('+codigo+') Escolha o WhatsApp e o destinatário.'
-          + (fotosBloqueadas>0 ? ' ('+fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '');
-        limparFotos();
-      }catch(err){
-        if(err && err.name==='AbortError'){
-          statusEl.className='status';
-          statusEl.textContent = 'Envio cancelado.';
-        } else {
-          baixarBlob(blob, nomeReal);
-          statusEl.className='status';
-          statusEl.textContent = 'Não foi possível abrir o compartilhamento direto (' + (err && err.name || 'erro') + '). O ZIP foi baixado como "'+nomeReal+'" \u2014 anexe-o manualmente no WhatsApp.'
-            + (fotosBloqueadas>0 ? ' ('+fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '');
-        }
-      }
+      // Não chamamos navigator.share aqui: com muitas fotos, compactar pode
+      // levar segundos suficientes para o navegador "esquecer" que foi um
+      // toque do usuário, e aí o compartilhamento é recusado. Por isso
+      // liberamos um segundo botão — o toque nele é o gesto válido.
+      statusEl.className='status ok';
+      statusEl.textContent = 'Compactado ('+codigo+')! Toque no botão verde abaixo para enviar no WhatsApp.';
+      btnAgora.style.display='block';
     } else {
       baixarBlob(blob, nomeReal);
       statusEl.className='status';
@@ -591,6 +655,41 @@ async function compactarEEnviar(){
     progWrap.style.display='none';
     btn.disabled = fotos.length===0;
   }
+}
+
+function enviarAgora(){
+  if(!envioPronto) return;
+  var statusEl = document.getElementById('statusZip');
+  // Chamado direto pelo clique — precisa ser síncrono até aqui para o
+  // navegador aceitar o compartilhamento.
+  navigator.share({
+    files:[envioPronto.arquivoDisfarcado],
+    title:'Fotos da obra',
+    text:'Fotos da obra \u2014 '+getRodape()
+  }).then(function(){
+    statusEl.className='status ok';
+    statusEl.textContent = 'Enviado! ('+envioPronto.codigo+') Escolha o WhatsApp e o destinatário.'
+      + (envioPronto.fotosBloqueadas>0 ? ' ('+envioPronto.fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '')
+      + ' Recarregando a página para o próximo envio...';
+    limparFotos();
+    // Recarrega a página sozinha: depois do primeiro compartilhamento, o
+    // navegador às vezes deixa de reconhecer os próximos toques como um gesto
+    // válido do usuário na mesma aba. Recarregar garante que o próximo envio
+    // comece "do zero", igual da primeira vez.
+    setTimeout(function(){ location.reload(); }, 2000);
+  }).catch(function(err){
+    if(err && err.name==='AbortError'){
+      statusEl.className='status';
+      statusEl.textContent = 'Envio cancelado.';
+    } else {
+      baixarBlob(envioPronto.blobReal, envioPronto.nomeReal);
+      statusEl.className='status';
+      statusEl.textContent = 'Não foi possível abrir o compartilhamento direto (' + (err && err.name || 'erro') + '). O ZIP foi baixado como "'+envioPronto.nomeReal+'" \u2014 anexe-o manualmente no WhatsApp.'
+        + (envioPronto.fotosBloqueadas>0 ? ' ('+envioPronto.fotosBloqueadas+' foto(s) já usada(s) antes foram excluídas.)' : '')
+        + ' Recarregando a página...';
+      setTimeout(function(){ location.reload(); }, 3000);
+    }
+  });
 }
 
 /* ── BLOCO 02: CARREGAR PPTX / ZIPS ──────────────────────────────────────*/
@@ -705,67 +804,163 @@ function xmlSlideLayout(){
 function xmlSlideLayoutRels(){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
 }
-function fitRect(imgW, imgH){
-  var slideRatio = EMU_W/EMU_H, imgRatio = imgW/imgH, cx, cy;
-  if(imgRatio > slideRatio){ cx = EMU_W; cy = Math.round(EMU_W/imgRatio); }
-  else { cy = EMU_H; cx = Math.round(EMU_H*imgRatio); }
-  return { x: Math.round((EMU_W-cx)/2), y: Math.round((EMU_H-cy)/2), cx: cx, cy: cy };
-}
 var LOGO_MARCA_RATIO = 555/553; // altura/largura da logo original
-function xmlSlide(imgW, imgH){
-  var r = fitRect(imgW, imgH);
+function xmlSlide(){
   var logoW = Math.round(EMU_W * 0.09);
   var logoH = Math.round(logoW * LOGO_MARCA_RATIO);
   var margem = Math.round(EMU_W * 0.02);
   var lx = EMU_W - logoW - margem;
   var ly = EMU_H - logoH - margem;
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Foto"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+r.x+'" y="'+r.y+'"/><a:ext cx="'+r.cx+'" cy="'+r.cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic><p:pic><p:nvPicPr><p:cNvPr id="3" name="Marca"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId3"><a:alphaModFix amt="20000"/></a:blip><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+lx+'" y="'+ly+'"/><a:ext cx="'+logoW+'" cy="'+logoH+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:transition spd="med" advTm="5000"><p:fade/></p:transition></p:sld>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:pic><p:nvPicPr><p:cNvPr id="2" name="Foto"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+EMU_W+'" cy="'+EMU_H+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic><p:pic><p:nvPicPr><p:cNvPr id="3" name="Marca"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId3"><a:alphaModFix amt="20000"/></a:blip><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="'+lx+'" y="'+ly+'"/><a:ext cx="'+logoW+'" cy="'+logoH+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr><p:transition spd="med" advTm="5000"><p:fade/></p:transition></p:sld>';
 }
 function xmlSlideRels(ext, slideIdx){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image'+slideIdx+'.'+ext+'"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo_marca.png"/></Relationships>';
 }
 
-var MAX_LADO_FOTO = 1920;   // maior lado da foto, em pixels, dentro da apresentação
-var QUALIDADE_JPEG = 0.82;  // qualidade da recompressão (reduz bastante o tamanho do arquivo)
+var SLIDE_OUT_W = 1920, SLIDE_OUT_H = 1080; // mesma proporção do slide (16:9)
+var BORDA_PX = Math.round(SLIDE_OUT_W * 0.018); // borda branca sutil, tipo foto antiga
+var GAP_PAR_PX = Math.round(BORDA_PX * 0.8);    // espaço entre as duas fotos em pé coladas
+var QUALIDADE_JPEG = 0.82; // qualidade da recompressão (reduz bastante o tamanho do arquivo)
 
-function corrigirEComprimirImagem(buffer){
-  return new Promise(function(resolve){
+function carregarBitmap(buffer){
+  return new Promise(function(resolve, reject){
     var blob = new Blob([buffer]);
-    function processar(fonte, largura, altura){
-      var escala = Math.min(1, MAX_LADO_FOTO / Math.max(largura, altura));
-      var outW = Math.max(1, Math.round(largura * escala));
-      var outH = Math.max(1, Math.round(altura * escala));
-      var canvas = document.createElement('canvas');
-      canvas.width = outW; canvas.height = outH;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(fonte, 0, 0, outW, outH);
-      canvas.toBlob(function(outBlob){
-        if(!outBlob){ resolve({buffer: buffer, width: largura, height: altura}); return; }
-        outBlob.arrayBuffer().then(function(outBuf){
-          resolve({buffer: outBuf, width: outW, height: outH});
-        }).catch(function(){ resolve({buffer: buffer, width: largura, height: altura}); });
-      }, 'image/jpeg', QUALIDADE_JPEG);
-    }
     if(window.createImageBitmap){
       // "from-image" respeita a orientação EXIF da foto (retrato/paisagem
-      // continuam como foram tiradas). Ao desenhar no canvas essa correção fica
-      // gravada nos pixels — o PowerPoint não lê a tag EXIF sozinho, então sem
-      // isso, fotos em pé podiam aparecer giradas/distorcidas na apresentação.
-      createImageBitmap(blob, {imageOrientation:'from-image'}).then(function(bmp){
-        processar(bmp, bmp.width, bmp.height);
-        if(bmp.close) bmp.close();
-      }).catch(function(){ fallbackProcessarImagem(blob, buffer, processar, resolve); });
+      // continuam como foram tiradas). O PowerPoint não lê essa marcação
+      // sozinho, então sem isso fotos em pé podiam aparecer giradas/distorcidas.
+      createImageBitmap(blob, {imageOrientation:'from-image'}).then(resolve).catch(function(){
+        carregarBitmapFallback(blob, resolve, reject);
+      });
     } else {
-      fallbackProcessarImagem(blob, buffer, processar, resolve);
+      carregarBitmapFallback(blob, resolve, reject);
     }
   });
 }
-function fallbackProcessarImagem(blob, buffer, processar, resolve){
+function carregarBitmapFallback(blob, resolve, reject){
   var url = URL.createObjectURL(blob);
   var img = new Image();
-  img.onload = function(){ processar(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
-  img.onerror = function(){ resolve({width:1600, height:1200, buffer: buffer}); URL.revokeObjectURL(url); };
+  img.onload = function(){ resolve(img); URL.revokeObjectURL(url); };
+  img.onerror = function(){ reject(new Error('Falha ao carregar imagem')); URL.revokeObjectURL(url); };
   img.src = url;
+}
+function dimensoesBitmap(bmp){
+  return { w: bmp.width || bmp.naturalWidth, h: bmp.height || bmp.naturalHeight };
+}
+function desenharCover(ctx, bmp, dx, dy, dw, dh){
+  // Desenha 'bmp' cobrindo totalmente o retângulo (dx,dy,dw,dh), cortando o
+  // excesso quando a proporção não bate exatamente (evita barras pretas/vazias).
+  var dim = dimensoesBitmap(bmp);
+  var srcRatio = dim.w / dim.h;
+  var dstRatio = dw / dh;
+  var sx, sy, sw, sh;
+  if(srcRatio > dstRatio){
+    sh = dim.h; sw = sh * dstRatio; sx = (dim.w - sw) / 2; sy = 0;
+  } else {
+    sw = dim.w; sh = sw / dstRatio; sx = 0; sy = (dim.h - sh) / 2;
+  }
+  ctx.drawImage(bmp, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+async function agruparPorOrientacao(imagens){
+  var grupos = [];
+  var pendente = null; // uma foto em pé aguardando outra para formar o par
+  for(var i=0;i<imagens.length;i++){
+    var bmp = await carregarBitmap(imagens[i].buffer);
+    var dim = dimensoesBitmap(bmp);
+    if(bmp.close) bmp.close();
+    var vertical = dim.h > dim.w;
+    if(vertical){
+      if(pendente){
+        grupos.push([pendente, imagens[i]]);
+        pendente = null;
+      } else {
+        pendente = imagens[i];
+      }
+    } else {
+      grupos.push([imagens[i]]);
+    }
+  }
+  return { grupos: grupos, pendente: pendente };
+}
+
+async function montarSlideComposto(buffers){
+  var canvas = document.createElement('canvas');
+  canvas.width = SLIDE_OUT_W; canvas.height = SLIDE_OUT_H;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,SLIDE_OUT_W,SLIDE_OUT_H);
+
+  var areaX = BORDA_PX, areaY = BORDA_PX;
+  var areaW = SLIDE_OUT_W - BORDA_PX*2;
+  var areaH = SLIDE_OUT_H - BORDA_PX*2;
+
+  if(buffers.length === 1){
+    var bmp = await carregarBitmap(buffers[0]);
+    desenharCover(ctx, bmp, areaX, areaY, areaW, areaH);
+    if(bmp.close) bmp.close();
+  } else {
+    var colW = Math.floor((areaW - GAP_PAR_PX) / 2);
+    var bmp1 = await carregarBitmap(buffers[0]);
+    desenharCover(ctx, bmp1, areaX, areaY, colW, areaH);
+    if(bmp1.close) bmp1.close();
+    var bmp2 = await carregarBitmap(buffers[1]);
+    desenharCover(ctx, bmp2, areaX+colW+GAP_PAR_PX, areaY, colW, areaH);
+    if(bmp2.close) bmp2.close();
+  }
+
+  return new Promise(function(resolve){
+    canvas.toBlob(function(outBlob){
+      outBlob.arrayBuffer().then(resolve);
+    }, 'image/jpeg', QUALIDADE_JPEG);
+  });
+}
+
+/* ── Foto em pé pendente (sem par) — guardada entre gerações via IndexedDB ─*/
+function abrirDBPendentes(){
+  return new Promise(function(resolve, reject){
+    var req = indexedDB.open('rfo_db', 1);
+    req.onupgradeneeded = function(){ req.result.createObjectStore('pendentes'); };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+async function salvarFotoPendente(imagem){
+  try{
+    var db = await abrirDBPendentes();
+    return new Promise(function(resolve){
+      var tx = db.transaction('pendentes','readwrite');
+      tx.objectStore('pendentes').put(imagem, 'vertical_pendente');
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ resolve(); };
+    });
+  }catch(e){ /* sem suporte a IndexedDB: só ignora, a foto fica de fora desta vez */ }
+}
+async function pegarFotoPendente(){
+  try{
+    var db = await abrirDBPendentes();
+    return new Promise(function(resolve){
+      var tx = db.transaction('pendentes','readonly');
+      var req = tx.objectStore('pendentes').get('vertical_pendente');
+      req.onsuccess = function(){ resolve(req.result || null); };
+      req.onerror = function(){ resolve(null); };
+    });
+  }catch(e){ return null; }
+}
+async function removerFotoPendente(){
+  try{
+    var db = await abrirDBPendentes();
+    return new Promise(function(resolve){
+      var tx = db.transaction('pendentes','readwrite');
+      tx.objectStore('pendentes').delete('vertical_pendente');
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ resolve(); };
+    });
+  }catch(e){}
+}
+
+function extFromName(name){
+  return (name||'').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
 }
 function extFromName(name){
   return (name||'').toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
@@ -818,9 +1013,9 @@ async function extrairImagensDosArquivos(arquivos, onProgress, hashesPreExistent
   }
   return { imagens: imagens, duplicadas: duplicadasIgnoradas };
 }
-async function criarNovaApresentacao(imagens, onProgress){
+async function criarNovaApresentacao(grupos, onProgress){
   var zip = new JSZip();
-  var n = imagens.length;
+  var n = grupos.length;
   zip.file('[Content_Types].xml', xmlContentTypes(n));
   zip.file('_rels/.rels', xmlRootRels());
   zip.file('docProps/core.xml', xmlCore());
@@ -836,11 +1031,12 @@ async function criarNovaApresentacao(imagens, onProgress){
   var slideIds = [];
   for(var i=1;i<=n;i++){
     slideIds.push({id:255+i, rid:i+1});
-    var img = imagens[i-1];
-    var processado = await corrigirEComprimirImagem(img.buffer);
-    zip.file('ppt/slides/slide'+i+'.xml', xmlSlide(processado.width, processado.height));
+    var grupo = grupos[i-1];
+    var buffers = grupo.map(function(im){ return im.buffer; });
+    var composto = await montarSlideComposto(buffers);
+    zip.file('ppt/slides/slide'+i+'.xml', xmlSlide());
     zip.file('ppt/slides/_rels/slide'+i+'.xml.rels', xmlSlideRels('jpeg', i));
-    zip.file('ppt/media/image'+i+'.jpeg', processado.buffer);
+    zip.file('ppt/media/image'+i+'.jpeg', composto);
     if(onProgress) onProgress(i, n);
   }
   zip.file('ppt/presentation.xml', xmlPresentation(slideIds));
@@ -967,7 +1163,7 @@ document.getElementById('inputPptxLimpar').addEventListener('change', async func
   }
 });
 
-async function alimentarApresentacaoExistente(pptxBuffer, imagens, onProgress){
+async function alimentarApresentacaoExistente(pptxBuffer, grupos, onProgress){
   var zip = await JSZip.loadAsync(pptxBuffer);
   if(!zip.file('ppt/media/logo_marca.png')){
     zip.file('ppt/media/logo_marca.png', LOGO_MARCA_PPTX_B64, {base64:true});
@@ -1006,15 +1202,16 @@ async function alimentarApresentacaoExistente(pptxBuffer, imagens, onProgress){
   var maxRid = ridMatches.length ? Math.max.apply(null, ridMatches) : 1;
 
   var newSldIds='', newPresRels='', newCtypes='';
-  var n = imagens.length;
+  var n = grupos.length;
 
   for(var i=0;i<n;i++){
     var slideIdx = maxSlide+i+1, rid = maxRid+i+1, sldId = maxId+i+1;
-    var img = imagens[i];
-    var processado = await corrigirEComprimirImagem(img.buffer);
-    zip.file('ppt/slides/slide'+slideIdx+'.xml', xmlSlide(processado.width, processado.height));
+    var grupo = grupos[i];
+    var buffers = grupo.map(function(im){ return im.buffer; });
+    var composto = await montarSlideComposto(buffers);
+    zip.file('ppt/slides/slide'+slideIdx+'.xml', xmlSlide());
     zip.file('ppt/slides/_rels/slide'+slideIdx+'.xml.rels', xmlSlideRels('jpeg', slideIdx));
-    zip.file('ppt/media/image'+slideIdx+'.jpeg', processado.buffer);
+    zip.file('ppt/media/image'+slideIdx+'.jpeg', composto);
     newSldIds += '<p:sldId id="'+sldId+'" r:id="rId'+rid+'"/>';
     newPresRels += '<Relationship Id="rId'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+slideIdx+'.xml"/>';
     newCtypes += '<Override PartName="/ppt/slides/slide'+slideIdx+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
@@ -1059,16 +1256,37 @@ async function gerarApresentacao(){
       return;
     }
 
+    statusEl.textContent = 'Verificando fotos em pé pendentes de uma geração anterior...';
+    var fotoPendenteAnterior = await pegarFotoPendente();
+    if(fotoPendenteAnterior){
+      imagens = [fotoPendenteAnterior].concat(imagens);
+      await removerFotoPendente();
+    }
+
+    statusEl.textContent = 'Organizando fotos (formato e pareamento de fotos em pé)...';
+    var agrupamento = await agruparPorOrientacao(imagens);
+    var grupos = agrupamento.grupos;
+    if(agrupamento.pendente){
+      await salvarFotoPendente(agrupamento.pendente);
+    }
+
+    if(grupos.length===0){
+      statusEl.className='status ok';
+      statusEl.textContent = 'A única foto em pé ficou pendente, aguardando outra foto em pé para formar o par. Ela entrará na próxima apresentação gerada.';
+      btn.disabled = zips.length===0; progWrap.style.display='none';
+      return;
+    }
+
     var blob;
     if(pptxCarregado){
-      statusEl.textContent = 'Alimentando PowerPoint carregado com '+imagens.length+' foto(s)...';
-      blob = await alimentarApresentacaoExistente(pptxCarregado.buffer, imagens, function(i,n){
+      statusEl.textContent = 'Alimentando PowerPoint carregado com '+grupos.length+' slide(s)...';
+      blob = await alimentarApresentacaoExistente(pptxCarregado.buffer, grupos, function(i,n){
         progBar.style.width = Math.round((i/n)*100)+'%';
-        statusEl.textContent = 'Adicionando foto '+i+' de '+n+'...';
+        statusEl.textContent = 'Adicionando slide '+i+' de '+n+'...';
       });
     } else {
-      statusEl.textContent = 'Gerando novo PowerPoint com '+imagens.length+' foto(s)...';
-      blob = await criarNovaApresentacao(imagens, function(i,n){
+      statusEl.textContent = 'Gerando novo PowerPoint com '+grupos.length+' slide(s)...';
+      blob = await criarNovaApresentacao(grupos, function(i,n){
         progBar.style.width = Math.round((i/n)*100)+'%';
         statusEl.textContent = 'Montando slide '+i+' de '+n+'...';
       });
@@ -1079,8 +1297,9 @@ async function gerarApresentacao(){
     baixarBlob(blob, nomeArquivo);
     progBar.style.width='100%';
     statusEl.className='status ok';
-    statusEl.textContent = 'Pronto! "'+nomeArquivo+'" gerado e baixado com '+imagens.length+' foto(s), transição fade e 5s por slide.'
-      + (duplicadas>0 ? ' ('+duplicadas+' foto'+(duplicadas>1?'s':'')+' repetida'+(duplicadas>1?'s':'')+' ignorada'+(duplicadas>1?'s':'')+'.)' : '');
+    statusEl.textContent = 'Pronto! "'+nomeArquivo+'" gerado e baixado com '+grupos.length+' slide(s) ('+imagens.length+' foto(s)), transição fade.'
+      + (duplicadas>0 ? ' ('+duplicadas+' foto'+(duplicadas>1?'s':'')+' repetida'+(duplicadas>1?'s':'')+' ignorada'+(duplicadas>1?'s':'')+'.)' : '')
+      + (agrupamento.pendente ? ' (1 foto em pé ficou pendente, aguardando par para a próxima geração.)' : '');
   }catch(err){
     statusEl.className='status err';
     statusEl.textContent = 'Erro ao gerar o PowerPoint: '+(err.message||err);
